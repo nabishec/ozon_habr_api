@@ -36,49 +36,55 @@ http://localhost:8080
 
 Для тестирования API можно использовать любые GraphQL клиенты, например Insomnia или GraphiQL.
 
-##🛠 Архитектура и решения
+## 🛠 Архитектура и решения
 
 В данном проекте используется структура данных для постов и комментариев с поддержкой пагинации, что позволяет эффективно работать с большими объемами данных. 
     
 Кроме того:     
 Комментарии хранятся в базе данных с использованием системы материализованных путей. Это позволяет эффективно строить иерархии комментариев и их ответов.
 Redis кэширование используется для хранения комментариев на протяжении 15 минут, что ускоряет работу системы за счет сокращения количества запросов к базе данных.
-## 📁 Структтура проекта
 
-ozon_habr_api/<br>
-`├──` cmd/<br>
-`│   ├──` db_connection/<br>
+
+<details>
+    <summary style="display: inline-flex; align-items: center;">
+        <h2 style="margin: 0; padding-right: 10px;">📁 Структура проекта </h2>
+        <span style="transform: rotate(90deg);">&#9654;</span>
+    </summary>
+
+`ozon_habr_api/`<br>
+`├── cmd/`<br>
+`│   ├── db_connection/`<br>
 `│   │   ├──` [cache.go](./cmd/db_connection/cache.go)                (Подключение и настройка Redis для кэширования)<br>
 `│   │   └──` [database.go](./cmd/db_connection/database.go)              (Подключение и настройка PostgreSQL)<br>
-`│   ├──` server/<br>
+`│   ├── server/`<br>
 `│   │   └──` [server.go](./cmd/server/server.go)               (Настройка и запуск GraphQL сервера)<br>
 `│   └──` [main.go](./cmd/main.go)                     (Основная точка входа, настройка и запуск приложения)<br>
-`├──` graph/<br>
-`│   ├──` model/<br>
+`├── graph/`<br>
+`│   ├── model/`<br>
 `│   │   └──` [models_gen.go](./graph/model/models_gen.go)           (Автоматически сгенерированные GraphQL модели)<br>
 `│   ├──` [generated.go](./graph/generated.go)                 (Сгенерированный код GraphQL (gqlgen))<br>
 `│   ├──` [resolver.go](./graph/resolver.go)                 (Основные резолверы GraphQL)<br>
 `│   ├──` [schema.graphqls](./graph/schema.graphqls)             (Определение GraphQL схемы)<br>
 `│   └──` [schema.resolvers.go](./graph/schema.resolvers.go)         (Реализация резолверов GraphQL)<br>
-`├──` internal/<br>
-`│   ├──` handlers/<br>
-`│   │   ├──` comment/                (Обработчики логики комментариев)<br>
+`├── internal/`<br>
+`│   ├── handlers/`<br>
+`│   │   ├── comment/`                (Обработчики логики комментариев)<br>
 `│   │   │   ├──` [interface.go](./)        (Интерфейс для мутаций комментариев)<br>
 `│   │   │   └──` [mutations.go](./)        (Реализация мутаций комментариев)<br>
-`│   │   └──` post_mutation/          (Обработчики логики постов)<br>
+`│   │   └── post_mutation/`          (Обработчики логики постов)<br>
 `│   │       ├──` [interface.go](./internal/handlers/post_mutation/interface.go)        (Интерфейс для мутаций постов)<br>
 `│   │       └──` [mutations.go](./internal/handlers/post_mutation/mutations.go)        (Реализация мутаций постов)<br>
-`│   ├──` model/<br>
+`│   ├── model/`<br>
 `│   │   └──` [model.go](./internal/model/model.go)                (Внутренние модели данных)<br>
-`│   └──` storage/<br>
+`│   └── storage/`<br>
 `│       ├──` [interface.go](./internal/storage/interface.go)            (Интерфейс для хранилища данных (PostgreSQL, in-memory))<br>
 `│       ├──` db/<br>
 `│       │   └──` [resolvers.go](./internal/storage/db/resolvers.go)        (Реализация хранилища данных в PostgreSQL)<br>
 `│       └──` in-memory/<br>
 `│           └──` [resolvers.go](./internal/storage/in-memory/resolvers.go)        (Реализация хранилища данных в памяти)<br>
-`├──` migrations/<br>
+`├── migrations/`<br>
 `│   └──` [001_create_tables.up.sql](./migrations/001_create_tables.up.sql)    (SQL скрипт для миграции базы данных (создание таблиц))<br>
-`├──` tools/<br>
+`├── tools/`<br>
 `│    └──` [tools.go](./tools/tools.go)                   (Инструменты для генерации кода gqlgen)<br>
 `├──` [.env](./.env)                            (Файл с переменными окружения (настройки базы данных, Redis и т.д.))<br>
 `├──` [.gitignore](./.gitignore)                      (Список игнорируемых файлов и директорий для Git)<br>
@@ -90,10 +96,9 @@ ozon_habr_api/<br>
 `├──` [LICENSE](./LICENSE)                         (Лицензия проекта)<br>
 `└──` [README.md](./README.md)                       (Файл с описанием проекта)<br>
 
-
+</details>
 
 ## 📝 Структура данных
-
 ## 💡 Примечания
 ## 🧪 Тестирование
 ## 📜 Лицензия
