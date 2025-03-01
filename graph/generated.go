@@ -72,9 +72,9 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddComment    func(childComplexity int, commentInput model.NewComment) int
-		AddPost       func(childComplexity int, postInput model.NewPost) int
-		EnableComment func(childComplexity int, postID int64, authorID uuid.UUID, commentsEnabled bool) int
+		AddComment          func(childComplexity int, commentInput model.NewComment) int
+		AddPost             func(childComplexity int, postInput model.NewPost) int
+		UpdateEnableComment func(childComplexity int, postID int64, authorID uuid.UUID, commentsEnabled bool) int
 	}
 
 	PageInfo struct {
@@ -105,7 +105,7 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	AddPost(ctx context.Context, postInput model.NewPost) (*model.Post, error)
 	AddComment(ctx context.Context, commentInput model.NewComment) (*model.Comment, error)
-	EnableComment(ctx context.Context, postID int64, authorID uuid.UUID, commentsEnabled bool) (*model.Post, error)
+	UpdateEnableComment(ctx context.Context, postID int64, authorID uuid.UUID, commentsEnabled bool) (*model.Post, error)
 }
 type QueryResolver interface {
 	Posts(ctx context.Context) ([]*model.Post, error)
@@ -240,17 +240,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddPost(childComplexity, args["postInput"].(model.NewPost)), true
 
-	case "Mutation.enableComment":
-		if e.complexity.Mutation.EnableComment == nil {
+	case "Mutation.updateEnableComment":
+		if e.complexity.Mutation.UpdateEnableComment == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_enableComment_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_updateEnableComment_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.EnableComment(childComplexity, args["postID"].(int64), args["authorID"].(uuid.UUID), args["commentsEnabled"].(bool)), true
+		return e.complexity.Mutation.UpdateEnableComment(childComplexity, args["postID"].(int64), args["authorID"].(uuid.UUID), args["commentsEnabled"].(bool)), true
 
 	case "PageInfo.endCursor":
 		if e.complexity.PageInfo.EndCursor == nil {
@@ -581,27 +581,27 @@ func (ec *executionContext) field_Mutation_addPost_argsPostInput(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Mutation_enableComment_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Mutation_updateEnableComment_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Mutation_enableComment_argsPostID(ctx, rawArgs)
+	arg0, err := ec.field_Mutation_updateEnableComment_argsPostID(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
 	args["postID"] = arg0
-	arg1, err := ec.field_Mutation_enableComment_argsAuthorID(ctx, rawArgs)
+	arg1, err := ec.field_Mutation_updateEnableComment_argsAuthorID(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
 	args["authorID"] = arg1
-	arg2, err := ec.field_Mutation_enableComment_argsCommentsEnabled(ctx, rawArgs)
+	arg2, err := ec.field_Mutation_updateEnableComment_argsCommentsEnabled(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
 	args["commentsEnabled"] = arg2
 	return args, nil
 }
-func (ec *executionContext) field_Mutation_enableComment_argsPostID(
+func (ec *executionContext) field_Mutation_updateEnableComment_argsPostID(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (int64, error) {
@@ -614,7 +614,7 @@ func (ec *executionContext) field_Mutation_enableComment_argsPostID(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Mutation_enableComment_argsAuthorID(
+func (ec *executionContext) field_Mutation_updateEnableComment_argsAuthorID(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (uuid.UUID, error) {
@@ -627,7 +627,7 @@ func (ec *executionContext) field_Mutation_enableComment_argsAuthorID(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Mutation_enableComment_argsCommentsEnabled(
+func (ec *executionContext) field_Mutation_updateEnableComment_argsCommentsEnabled(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (bool, error) {
@@ -1515,8 +1515,8 @@ func (ec *executionContext) fieldContext_Mutation_addComment(ctx context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_enableComment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_enableComment(ctx, field)
+func (ec *executionContext) _Mutation_updateEnableComment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateEnableComment(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1529,7 +1529,7 @@ func (ec *executionContext) _Mutation_enableComment(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().EnableComment(rctx, fc.Args["postID"].(int64), fc.Args["authorID"].(uuid.UUID), fc.Args["commentsEnabled"].(bool))
+		return ec.resolvers.Mutation().UpdateEnableComment(rctx, fc.Args["postID"].(int64), fc.Args["authorID"].(uuid.UUID), fc.Args["commentsEnabled"].(bool))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1546,7 +1546,7 @@ func (ec *executionContext) _Mutation_enableComment(ctx context.Context, field g
 	return ec.marshalNPost2ᚖgithubᚗcomᚋnabishecᚋozon_habr_apiᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_enableComment(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_updateEnableComment(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -1579,7 +1579,7 @@ func (ec *executionContext) fieldContext_Mutation_enableComment(ctx context.Cont
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_enableComment_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_updateEnableComment_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -4576,9 +4576,9 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "enableComment":
+		case "updateEnableComment":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_enableComment(ctx, field)
+				return ec._Mutation_updateEnableComment(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++

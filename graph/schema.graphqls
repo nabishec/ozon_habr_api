@@ -63,7 +63,7 @@ input NewComment {
 type Mutation {
   addPost(postInput: NewPost!): Post!
   addComment(commentInput: NewComment!): Comment!
-  enableComment(postID: Int64!, authorID: UUID!, commentsEnabled: Boolean!): Post!
+  updateEnableComment(postID: Int64!, authorID: UUID!, commentsEnabled: Boolean!): Post!
 }
 
 type Subscription {

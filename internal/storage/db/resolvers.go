@@ -1,12 +1,15 @@
 package db
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/go-redis/cache/v9"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/nabishec/ozon_habr_api/internal/model"
+	"github.com/nabishec/ozon_habr_api/internal/storage"
 	"github.com/rs/zerolog/log"
 )
 
@@ -48,4 +51,58 @@ func (r *Storage) AddPost(newPost *model.NewPost) (*model.Post, error) {
 
 	log.Debug().Msgf("%s end", op)
 	return post, err
+}
+
+func (r *Storage) UpdateEnableCommentToPost(postID int64, authorID uuid.UUID, commentsEnabled bool) (*model.Post, error) {
+	op := "internal.storage.db.UpdateEnableCommentToPost()"
+
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return nil, fmt.Errorf("%s:%w", op, err)
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	post := &model.Post{
+		ID: postID,
+	}
+
+	queryGetPost := `SELECT author_id, title, text, comments_enabled, create_date
+						FROM Posts
+						WHERE post_id = $1 `
+
+	queryUpdatePost := `UPDATE Posts
+							SET comments_enabled = $1
+							WHERE post_id = $2`
+
+	err = tx.Get(post, queryGetPost, postID)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("%s:%w", op, storage.ErrPostNotExist)
+		}
+		return nil, fmt.Errorf("%s:%w", op, err)
+	}
+
+	if post.AuthorID != authorID {
+		return nil, fmt.Errorf("%s:%w", op, storage.ErrUnauthorizedAccess)
+	}
+
+	_, err = tx.Exec(queryUpdatePost, commentsEnabled, postID)
+	if err != nil {
+		return nil, fmt.Errorf("%s:%w", op, err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, fmt.Errorf("%s:%w", op, err)
+	}
+
+	post.CommentsEnabled = commentsEnabled
+
+	return post, nil
+
 }

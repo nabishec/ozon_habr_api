@@ -6,11 +6,13 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/nabishec/ozon_habr_api/graph/model"
 	internalmodel "github.com/nabishec/ozon_habr_api/internal/model"
+	"github.com/nabishec/ozon_habr_api/internal/storage"
 	"github.com/rs/zerolog/log"
 )
 
@@ -20,19 +22,23 @@ func (r *mutationResolver) AddPost(ctx context.Context, postInput model.NewPost)
 
 	log.Debug().Msgf("%s start", op)
 
-	newPost := toInternalModel(&postInput)
+	newPost := postToInternalModel(&postInput)
 	post, err := r.PostMutation.AddPost(newPost)
 
 	if err != nil {
-		log.Debug().Msgf("%s end with error", op)
+		log.Error().Err(err).Msgf("%s end with error", op)
+		if err != storage.ErrPostNotExist || err != storage.ErrUnauthorizedAccess {
+			err = errors.New("internal server error")
+		}
+
 		return nil, err
 	}
 
 	log.Debug().Msgf("%s end", op)
-	return fromInternalModel(post), err
+	return postFromInternalModel(post), err
 }
 
-func toInternalModel(postInput *model.NewPost) *internalmodel.NewPost {
+func postToInternalModel(postInput *model.NewPost) *internalmodel.NewPost {
 	return &internalmodel.NewPost{
 		AuthorID:        postInput.AuthorID,
 		Title:           postInput.Title,
@@ -41,7 +47,7 @@ func toInternalModel(postInput *model.NewPost) *internalmodel.NewPost {
 	}
 }
 
-func fromInternalModel(postInput *internalmodel.Post) *model.Post {
+func postFromInternalModel(postInput *internalmodel.Post) *model.Post {
 	return &model.Post{
 		ID:              postInput.ID,
 		AuthorID:        postInput.AuthorID,
@@ -57,9 +63,24 @@ func (r *mutationResolver) AddComment(ctx context.Context, commentInput model.Ne
 	panic(fmt.Errorf("not implemented: AddComment - addComment"))
 }
 
-// EnableComment is the resolver for the enableComment field.
-func (r *mutationResolver) EnableComment(ctx context.Context, postID int64, authorID uuid.UUID, commentsEnabled bool) (*model.Post, error) {
-	panic(fmt.Errorf("not implemented: EnableComment - enableComment"))
+// UpdateEnableComment is the resolver for the updateEnableComment field.
+func (r *mutationResolver) UpdateEnableComment(ctx context.Context, postID int64, authorID uuid.UUID, commentsEnabled bool) (*model.Post, error) {
+	const op = "graph.UpdateEnableComment()"
+
+	log.Debug().Msgf("%s start", op)
+
+	post, err := r.PostMutation.UpdateEnableCommentToPost(postID, authorID, commentsEnabled)
+
+	if err != nil {
+		log.Error().Err(err).Msgf("%s end with error", op)
+		if err != storage.ErrPostNotExist || err != storage.ErrUnauthorizedAccess {
+			err = errors.New("internal server error")
+		}
+		return nil, err
+	}
+
+	log.Debug().Msgf("%s end", op)
+	return postFromInternalModel(post), err
 }
 
 // Posts is the resolver for the posts field.
@@ -89,18 +110,3 @@ func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionRes
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-/*
-	func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: CreateTodo - createTodo"))
-}
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: Todos - todos"))
-}
-*/
