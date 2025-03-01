@@ -104,5 +104,24 @@ func (r *Storage) UpdateEnableCommentToPost(postID int64, authorID uuid.UUID, co
 	post.CommentsEnabled = commentsEnabled
 
 	return post, nil
+}
 
+func (r *Storage) GetAllPosts() ([]*model.Post, error) {
+	op := "internal.storage.db.GetAllPosts()"
+
+	queryGetAllPosts := `SELECT post_id, author_id, title, text, comments_enabled, create_date
+						FROM Posts
+						ORDER BY create_date`
+
+	var posts []*model.Post
+	err := r.db.Select(&posts, queryGetAllPosts)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("%s:%w", op, storage.ErrPostsNotExist)
+		}
+		return nil, fmt.Errorf("%s:%w", op, err)
+	}
+
+	return posts, nil
 }

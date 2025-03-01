@@ -70,9 +70,12 @@ Redis кэширование используется для хранения к
 `│   │   ├── comment/`                (Обработчики логики комментариев)<br>
 `│   │   │   ├──` [`interface.go`](./)        (Интерфейс для мутаций комментариев)<br>
 `│   │   │   └──` [`mutations.go`](./)        (Реализация мутаций комментариев)<br>
-`│   │   └── post_mutation/`          (Обработчики логики постов)<br>
-`│   │       ├──` [`interface.go`](./internal/handlers/post_mutation/interface.go)        (Интерфейс для мутаций постов)<br>
-`│   │       └──` [`mutations.go`](./internal/handlers/post_mutation/mutations.go)        (Реализация мутаций постов)<br>
+`│   │   ├── post_mutation/`          (Обработчики логики мутаций постов)<br>
+`│   │   │   ├──` [`interface.go`](./internal/handlers/post_mutation/interface.go)        (Интерфейс для мутаций постов)<br>
+`│   │   │   └──` [`mutations.go`](./internal/handlers/post_mutation/mutations.go)        (Реализация мутаций постов)<br>
+`│   │   └── post_query/`          (Обработчики логики запросов постов)<br>
+`│   │       ├──` [`interface.go`](./internal/handlers/post_query/interface.go)        (Интерфейс для запросов постов)<br>
+`│   │       └──` [`query.go`](./internal/handlers/post_query/query.go)        (Реализация запросов постов)<br>
 `│   ├── model/`<br>
 `│   │   └──` [`model.go`](./internal/model/model.go)                (Внутренние модели данных)<br>
 `│   └── storage/`<br>

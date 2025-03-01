@@ -9,11 +9,11 @@ import (
 )
 
 type PostMutation struct {
-	postImp PostImp
+	postMutImp PostMutImp
 }
 
-func NewPostMutation(postImp PostImp) *PostMutation {
-	return &PostMutation{postImp: postImp}
+func NewPostMutation(postImp PostMutImp) *PostMutation {
+	return &PostMutation{postMutImp: postImp}
 }
 
 func (h *PostMutation) AddPost(newPost *model.NewPost) (*model.Post, error) {
@@ -21,7 +21,7 @@ func (h *PostMutation) AddPost(newPost *model.NewPost) (*model.Post, error) {
 
 	log.Debug().Msgf("%s start", op)
 
-	post, err := h.postImp.AddPost(newPost)
+	post, err := h.postMutImp.AddPost(newPost)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", op, err)
@@ -36,7 +36,7 @@ func (h *PostMutation) UpdateEnableCommentToPost(postID int64, authorID uuid.UUI
 
 	log.Debug().Msgf("%s start", op)
 
-	post, err := h.postImp.UpdateEnableCommentToPost(postID, authorID, commentsEnabled)
+	post, err := h.postMutImp.UpdateEnableCommentToPost(postID, authorID, commentsEnabled)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", op, err)

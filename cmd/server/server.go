@@ -13,6 +13,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/nabishec/ozon_habr_api/graph"
 	postmutation "github.com/nabishec/ozon_habr_api/internal/handlers/post_mutation"
+	postquery "github.com/nabishec/ozon_habr_api/internal/handlers/post_query"
 	"github.com/nabishec/ozon_habr_api/internal/storage"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -26,9 +27,15 @@ func RunServer(storage storage.StorageImp) {
 		port = defaultPort
 	}
 
-	postmutation := postmutation.NewPostMutation(storage)
+	postMutation := postmutation.NewPostMutation(storage)
+	postQuery := postquery.NewPostQuery(storage)
 
-	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{PostMutation: postmutation}}))
+	resolver := &graph.Resolver{
+		PostMutation: postMutation,
+		PostQuery:    postQuery,
+	}
+
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
 
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})

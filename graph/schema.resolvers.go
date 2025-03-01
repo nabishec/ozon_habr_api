@@ -85,7 +85,26 @@ func (r *mutationResolver) UpdateEnableComment(ctx context.Context, postID int64
 
 // Posts is the resolver for the posts field.
 func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
-	panic(fmt.Errorf("not implemented: Posts - posts"))
+	const op = "graph.Posts()"
+
+	log.Debug().Msgf("%s start", op)
+
+	internalPosts, err := r.PostQuery.GetAllPosts()
+
+	if err != nil {
+		log.Error().Err(err).Msgf("%s end with error", op)
+		if err != storage.ErrPostsNotExist {
+			err = errors.New("internal server error")
+		}
+		return nil, err
+	}
+	posts := make([]*model.Post, len(internalPosts))
+	for i := 0; i < len(internalPosts); i++ {
+		posts[i] = postFromInternalModel(internalPosts[i])
+	}
+
+	log.Debug().Msgf("%s end", op)
+	return posts, err
 }
 
 // Post is the resolver for the post field.
