@@ -82,13 +82,13 @@ func (r *Storage) UpdateEnableCommentToPost(postID int64, authorID uuid.UUID, co
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("%s:%w", op, storage.ErrPostNotExist)
+			return nil, storage.ErrPostNotExist
 		}
 		return nil, fmt.Errorf("%s:%w", op, err)
 	}
 
 	if post.AuthorID != authorID {
-		return nil, fmt.Errorf("%s:%w", op, storage.ErrUnauthorizedAccess)
+		return nil, storage.ErrUnauthorizedAccess
 	}
 
 	_, err = tx.Exec(queryUpdatePost, commentsEnabled, postID)
@@ -118,10 +118,30 @@ func (r *Storage) GetAllPosts() ([]*model.Post, error) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("%s:%w", op, storage.ErrPostsNotExist)
+			return nil, storage.ErrPostsNotExist
 		}
 		return nil, fmt.Errorf("%s:%w", op, err)
 	}
 
 	return posts, nil
+}
+
+func (r *Storage) GetPost(postID int64) (*model.Post, error) {
+	op := "internal.storage.db.GetPost()"
+
+	queryGetPost := `SELECT post_id, author_id, title, text, comments_enabled, create_date
+						FROM Posts
+						WHERE post_id = $1`
+
+	var post = new(model.Post)
+	err := r.db.Get(post, queryGetPost, postID)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, storage.ErrPostNotExist
+		}
+		return nil, fmt.Errorf("%s:%w", op, err)
+	}
+
+	return post, nil
 }

@@ -6,4 +6,5 @@ import (
 
 type PostQueryImp interface {
 	GetAllPosts() ([]*model.Post, error)
+	GetPost(postID int64) (*model.Post, error)
 }

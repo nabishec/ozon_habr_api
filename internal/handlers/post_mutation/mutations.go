@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nabishec/ozon_habr_api/internal/model"
+	"github.com/nabishec/ozon_habr_api/internal/storage"
 	"github.com/rs/zerolog/log"
 )
 
@@ -39,6 +40,9 @@ func (h *PostMutation) UpdateEnableCommentToPost(postID int64, authorID uuid.UUI
 	post, err := h.postMutImp.UpdateEnableCommentToPost(postID, authorID, commentsEnabled)
 
 	if err != nil {
+		if err == storage.ErrPostNotExist || err == storage.ErrUnauthorizedAccess {
+			return nil, err
+		}
 		return nil, fmt.Errorf("%s:%w", op, err)
 	}
 

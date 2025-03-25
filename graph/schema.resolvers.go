@@ -27,9 +27,6 @@ func (r *mutationResolver) AddPost(ctx context.Context, postInput model.NewPost)
 
 	if err != nil {
 		log.Error().Err(err).Msgf("%s end with error", op)
-		if err != storage.ErrPostNotExist || err != storage.ErrUnauthorizedAccess {
-			err = errors.New("internal server error")
-		}
 
 		return nil, err
 	}
@@ -109,7 +106,22 @@ func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
 
 // Post is the resolver for the post field.
 func (r *queryResolver) Post(ctx context.Context, postID int64) (*model.Post, error) {
-	panic(fmt.Errorf("not implemented: Post - post"))
+	const op = "graph.Post()"
+
+	log.Debug().Msgf("%s start", op)
+
+	post, err := r.PostQuery.GetPostWithComment(postID)
+
+	if err != nil {
+		log.Error().Err(err).Msgf("%s end with error", op)
+		if err != storage.ErrPostNotExist {
+			err = errors.New("internal server error")
+		}
+		return nil, err
+	}
+
+	log.Debug().Msgf("%s end", op)
+	return postFromInternalModel(post), err
 }
 
 // CommentAdded is the resolver for the commentAdded field.
