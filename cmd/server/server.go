@@ -12,6 +12,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/nabishec/ozon_habr_api/graph"
+	commentmutation "github.com/nabishec/ozon_habr_api/internal/handlers/comment_mutation"
 	commentquery "github.com/nabishec/ozon_habr_api/internal/handlers/comment_query"
 	postmutation "github.com/nabishec/ozon_habr_api/internal/handlers/post_mutation"
 	postquery "github.com/nabishec/ozon_habr_api/internal/handlers/post_query"
@@ -30,9 +31,10 @@ func RunServer(storage storage.StorageImp) {
 
 	postMutation := postmutation.NewPostMutation(storage)
 	postQuery := postquery.NewPostQuery(storage)
+	commentMutation := commentmutation.NewCommentMutation(storage)
 	commentQuery := commentquery.NewCommentQuery(storage)
 
-	resolver := graph.NewResolver(postMutation, postQuery, commentQuery)
+	resolver := graph.NewResolver(postMutation, postQuery, commentMutation, commentQuery)
 
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
 

@@ -12,4 +12,5 @@ type StorageImp interface {
 	GetPost(postID int64) (*model.Post, error)
 	GetCommentsBranch(postID int64, path string) ([]*model.Comment, error)
 	GetCommentPath(parentID int64) (string, error)
+	AddComment(postID int64, newComment *model.NewComment) (*model.Comment, error)
 }

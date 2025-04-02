@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/nabishec/ozon_habr_api/internal/model"
-	"github.com/nabishec/ozon_habr_api/internal/storage"
+	"github.com/nabishec/ozon_habr_api/internal/pkg/errs"
 	"github.com/rs/zerolog/log"
 )
 
@@ -17,15 +17,13 @@ func NewCommentQuery(commentQueryImp CommentQueryImp) *CommentQuery {
 }
 
 func (h *CommentQuery) GetCommentsBranchToPost(postID int64, path string) ([]*model.Comment, error) {
-	op := "internal.storage.db.GetPostWithComment()"
+	op := "internal.handlers.commentquery.GetCommentsBranchToPost()"
 
 	log.Debug().Msgf("%s start", op)
 
 	comments, err := h.commentQueryImp.GetCommentsBranch(postID, path)
 	if err != nil {
-		if err == storage.ErrCommentsNotExist {
-			return nil, err
-		} else if err == storage.ErrPathNotExist {
+		if err == errs.ErrCommentsNotExist || err == errs.ErrPathNotExist {
 			return nil, err
 		}
 		return nil, fmt.Errorf("%s:%w", op, err)
@@ -36,14 +34,14 @@ func (h *CommentQuery) GetCommentsBranchToPost(postID int64, path string) ([]*mo
 }
 
 func (h *CommentQuery) GetPathToComments(parentID int64) (string, error) {
-	op := "internal.storage.db.GetPostWithComment()"
+	op := "internal.handlers.commentquery.GetPathToComments()"
 
 	log.Debug().Msgf("%s start", op)
 
 	path, err := h.commentQueryImp.GetCommentPath(parentID)
 	if err != nil {
-		if err == storage.ErrCommentsNotExist {
-			return "", storage.ErrCommentsNotExist
+		if err == errs.ErrCommentsNotExist {
+			return "", err
 		}
 		return "", fmt.Errorf("%s:%w", op, err)
 	}

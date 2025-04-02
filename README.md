@@ -67,6 +67,9 @@ Redis кэширование используется для хранения к
 `│   └──` [`schema.resolvers.go`](./graph/schema.resolvers.go)         (Реализация резолверов GraphQL)<br>
 `├── internal/`<br>
 `│   ├── handlers/`<br>
+`│   │   ├── comment_mutation/`                (Обработчики логики мутаций комментариев)<br>
+`│   │   │   ├──` [`interface.go`](./internal/handlers/comment_mutation/interface.go)        (Интерфейс для мутаций комментариев)<br>
+`│   │   │   └──` [`mutations.go`](./internal/handlers/comment_mutation/mutations.go)        (Реализация мутаций комментариев)<br>
 `│   │   ├── comment_query/`                (Обработчики логики запросов комментариев)<br>
 `│   │   │   ├──` [`interface.go`](./internal/handlers/comment_query/interface.go)        (Интерфейс для запросов комментариев)<br>
 `│   │   │   └──` [`query.go`](./internal/handlers/comment_query/query.go)        (Реализация запросов комментариев)<br>
@@ -76,9 +79,11 @@ Redis кэширование используется для хранения к
 `│   │   └── post_query/`          (Обработчики логики запросов постов)<br>
 `│   │       ├──` [`interface.go`](./internal/handlers/post_query/interface.go)        (Интерфейс для запросов постов)<br>
 `│   │       └──` [`query.go`](./internal/handlers/post_query/query.go)        (Реализация запросов постов)<br>
-`│   ├── lib/`<br>
-`│   │   └── cursor/`<br>
-`│   │       └──` [`cursor.go`](./internal/lib/cursor/cursor.go)        (Функции для работы с курсорами в пагинации)<br>
+`│   ├── pkg/`<br>
+`│   │   ├── cursor/`<br>
+`│   │   |   └──` [`cursor.go`](./internal/pkg/cursor/cursor.go)        (Функции для работы с курсорами в пагинации)<br>
+`│   │   └── errs/`<br>
+`│   │       └──` [`errors.go`](./internal/pkg/errs/errors.go)        (Хранит ошибки бизнес логики)<br>
 `│   ├── model/`<br>
 `│   │   └──` [`model.go`](./internal/model/model.go)                (Внутренние модели данных)<br>
 `│   └── storage/`<br>
@@ -86,8 +91,7 @@ Redis кэширование используется для хранения к
 `│       │   └──` [`resolvers.go`](./internal/storage/db/resolvers.go)        (Реализация методов для работы с базой данных PostgreSQL)<br>
 `│       ├── in-memory/` (Реализация хранилища данных в памяти) <br>
 `│       │   └──` [`resolvers.go`](./internal/storage/in-memory/resolvers.go)        (Реализация методов для работы с даннми в памяти)<br>
-`│       ├──` [`interface.go`](./internal/storage/interface.go)            (Интерфейс для хранилища данных (PostgreSQL, in-memory))<br>
-`│       └──` [`storage_errors.go`](./internal/storage/storage_errors.go)     (Хранит ошибки бизнес логики)<br>
+`│       └──` [`interface.go`](./internal/storage/interface.go)            (Интерфейс для хранилища данных (PostgreSQL, in-memory))<br>
 `├── migrations/`<br>
 `│   └──` [`001_create_tables.up.sql`](./migrations/001_create_tables.up.sql)    (SQL скрипт для миграции базы данных (создание таблиц))<br>
 `├── tools/`<br>

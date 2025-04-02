@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nabishec/ozon_habr_api/internal/model"
-	"github.com/nabishec/ozon_habr_api/internal/storage"
+	"github.com/nabishec/ozon_habr_api/internal/pkg/errs"
 	"github.com/rs/zerolog/log"
 )
 
@@ -18,7 +18,7 @@ func NewPostMutation(postImp PostMutImp) *PostMutation {
 }
 
 func (h *PostMutation) AddPost(newPost *model.NewPost) (*model.Post, error) {
-	op := "internal.storage.db.AddPost()"
+	op := "internal.handlers.postmutation.AddPost()"
 
 	log.Debug().Msgf("%s start", op)
 
@@ -33,14 +33,14 @@ func (h *PostMutation) AddPost(newPost *model.NewPost) (*model.Post, error) {
 }
 
 func (h *PostMutation) UpdateEnableCommentToPost(postID int64, authorID uuid.UUID, commentsEnabled bool) (*model.Post, error) {
-	op := "internal.storage.db.UpdateEnableCommentToPost()"
+	op := "internal.handlers.postmutation.UpdateEnableCommentToPost()"
 
 	log.Debug().Msgf("%s start", op)
 
 	post, err := h.postMutImp.UpdateEnableCommentToPost(postID, authorID, commentsEnabled)
 
 	if err != nil {
-		if err == storage.ErrPostNotExist || err == storage.ErrUnauthorizedAccess {
+		if err == errs.ErrPostNotExist || err == errs.ErrUnauthorizedAccess {
 			return nil, err
 		}
 		return nil, fmt.Errorf("%s:%w", op, err)

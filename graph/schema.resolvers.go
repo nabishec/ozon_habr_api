@@ -11,9 +11,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nabishec/ozon_habr_api/graph/model"
-	"github.com/nabishec/ozon_habr_api/internal/lib/cursor"
 	internalmodel "github.com/nabishec/ozon_habr_api/internal/model"
-	"github.com/nabishec/ozon_habr_api/internal/storage"
+	"github.com/nabishec/ozon_habr_api/internal/pkg/cursor"
+	"github.com/nabishec/ozon_habr_api/internal/pkg/errs"
 	"github.com/rs/zerolog/log"
 )
 
@@ -38,7 +38,7 @@ func (r *commentResolver) Replies(ctx context.Context, obj *model.Comment, first
 	} else {
 		path, err = r.CommentQuery.GetPathToComments(obj.ID)
 		if err != nil {
-			if err != storage.ErrCommentsNotExist {
+			if err != errs.ErrCommentsNotExist {
 				err = errors.New("internal server error")
 			}
 
@@ -48,7 +48,10 @@ func (r *commentResolver) Replies(ctx context.Context, obj *model.Comment, first
 
 	internalCommentsBranch, err := r.CommentQuery.GetCommentsBranchToPost(obj.PostID, path)
 	if err != nil {
-		if err != storage.ErrCommentsNotExist && err != storage.ErrPathNotExist {
+		if err != errs.ErrCommentsNotExist {
+			if err == errs.ErrPathNotExist {
+				return nil, nil // it works when there are no replies to the comment.
+			}
 			err = errors.New("internal server error")
 		}
 		return nil, err
@@ -68,7 +71,7 @@ func (r *mutationResolver) AddPost(ctx context.Context, postInput model.NewPost)
 
 	log.Debug().Msgf("%s start", op)
 
-	newPost := postToInternalModel(&postInput)
+	newPost := newPostToInternalModel(&postInput)
 	post, err := r.PostMutation.AddPost(newPost)
 
 	if err != nil {
@@ -81,12 +84,12 @@ func (r *mutationResolver) AddPost(ctx context.Context, postInput model.NewPost)
 	return postFromInternalModel(post), err
 }
 
-func postToInternalModel(internalPost *model.NewPost) *internalmodel.NewPost {
+func newPostToInternalModel(post *model.NewPost) *internalmodel.NewPost {
 	return &internalmodel.NewPost{
-		AuthorID:        internalPost.AuthorID,
-		Title:           internalPost.Title,
-		Text:            internalPost.Text,
-		CommentsEnabled: internalPost.CommentsEnabled,
+		AuthorID:        post.AuthorID,
+		Title:           post.Title,
+		Text:            post.Text,
+		CommentsEnabled: post.CommentsEnabled,
 	}
 }
 
@@ -103,7 +106,30 @@ func postFromInternalModel(internalPost *internalmodel.Post) *model.Post {
 
 // AddComment is the resolver for the addComment field.
 func (r *mutationResolver) AddComment(ctx context.Context, commentInput model.NewComment) (*model.Comment, error) {
-	panic(fmt.Errorf("not implemented: AddComment - addComment"))
+	const op = "graph.AddComment()"
+
+	log.Debug().Msgf("%s start", op)
+
+	newInternalComment := newCommentToInternalModel(&commentInput)
+	internalComment, err := r.CommentMutation.AddComment(newInternalComment.PostID, newInternalComment)
+	if err != nil {
+		if err != errs.ErrPostNotExist && err != errs.ErrParentCommentNotExist && err != errs.ErrCommentsNotEnabled {
+			err = errors.New("internal server error")
+		}
+		return nil, err
+	}
+
+	log.Debug().Msgf("%s end", op)
+	return commentFromInternalModel(internalComment), nil
+}
+
+func newCommentToInternalModel(newComment *model.NewComment) *internalmodel.NewComment {
+	return &internalmodel.NewComment{
+		AuthorID: newComment.AuthorID,
+		PostID:   newComment.PostID,
+		ParentID: newComment.ParentID,
+		Text:     newComment.Text,
+	}
 }
 
 // UpdateEnableComment is the resolver for the updateEnableComment field.
@@ -116,7 +142,7 @@ func (r *mutationResolver) UpdateEnableComment(ctx context.Context, postID int64
 
 	if err != nil {
 		log.Error().Err(err).Msgf("%s end with error", op)
-		if err != storage.ErrPostNotExist && err != storage.ErrUnauthorizedAccess {
+		if err != errs.ErrPostNotExist && err != errs.ErrUnauthorizedAccess {
 			err = errors.New("internal server error")
 		}
 		return nil, err
@@ -147,7 +173,7 @@ func (r *postResolver) Comments(ctx context.Context, obj *model.Post, first *int
 
 	internalCommentsBranch, err := r.CommentQuery.GetCommentsBranchToPost(obj.ID, path)
 	if err != nil {
-		if err != storage.ErrCommentsNotExist && err != storage.ErrPathNotExist {
+		if err != errs.ErrCommentsNotExist && err != errs.ErrPathNotExist {
 			err = errors.New("internal server error")
 		}
 		return nil, err
@@ -252,7 +278,7 @@ func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
 
 	if err != nil {
 		log.Error().Err(err).Msgf("%s end with error", op)
-		if err != storage.ErrPostsNotExist {
+		if err != errs.ErrPostsNotExist {
 			err = errors.New("internal server error")
 		}
 		return nil, err
@@ -276,7 +302,7 @@ func (r *queryResolver) Post(ctx context.Context, postID int64) (*model.Post, er
 
 	if err != nil {
 		log.Error().Err(err).Msgf("%s end with error", op)
-		if err != storage.ErrPostNotExist {
+		if err != errs.ErrPostNotExist {
 			err = errors.New("internal server error")
 		}
 		return nil, err

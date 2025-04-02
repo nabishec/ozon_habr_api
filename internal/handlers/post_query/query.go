@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/nabishec/ozon_habr_api/internal/model"
-	"github.com/nabishec/ozon_habr_api/internal/storage"
+	"github.com/nabishec/ozon_habr_api/internal/pkg/errs"
 	"github.com/rs/zerolog/log"
 )
 
@@ -17,14 +17,14 @@ func NewPostQuery(postQueryImp PostQueryImp) *PostQuery {
 }
 
 func (h *PostQuery) GetAllPosts() ([]*model.Post, error) {
-	op := "internal.storage.db.GetAllPosts()"
+	op := "internal.handlers.postquery.GetAllPosts()"
 
 	log.Debug().Msgf("%s start", op)
 
 	posts, err := h.postQueryImp.GetAllPosts()
 
 	if err != nil {
-		if err == storage.ErrPostsNotExist {
+		if err == errs.ErrPostsNotExist {
 			return nil, err
 		}
 		return nil, fmt.Errorf("%s:%w", op, err)
@@ -35,14 +35,14 @@ func (h *PostQuery) GetAllPosts() ([]*model.Post, error) {
 }
 
 func (h *PostQuery) GetPost(postID int64) (*model.Post, error) {
-	op := "internal.storage.db.GetPostWithComment()"
+	op := "internal.handlers.postquery.GetPostWithComment()"
 
 	log.Debug().Msgf("%s start", op)
 
 	post, err := h.postQueryImp.GetPost(postID)
 
 	if err != nil {
-		if err == storage.ErrPostNotExist {
+		if err == errs.ErrPostNotExist {
 			return nil, err
 		}
 		return nil, fmt.Errorf("%s:%w", op, err)

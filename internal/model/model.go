@@ -7,14 +7,13 @@ import (
 )
 
 type Comment struct {
-	ID         int64      `json:"id" db:"comment_id"`
-	AuthorID   uuid.UUID  `json:"authorID" db:"author_id"`
-	PostID     int64      `json:"postID" db:"post_id"`
-	ParentID   *int64     `json:"parentID,omitempty" db:"parent_id"`
-	Path       string     `db:"path"`
-	Text       string     `json:"text" db:"text"`
-	CreateDate time.Time  `json:"createDate" db:"create_date"`
-	Replies    []*Comment `json:"replies,omitempty"`
+	ID         int64     `json:"id" db:"comment_id"`
+	AuthorID   uuid.UUID `json:"authorID" db:"author_id"`
+	PostID     int64     `json:"postID" db:"post_id"`
+	ParentID   *int64    `json:"parentID,omitempty" db:"parent_id"`
+	Path       string    `db:"path"`
+	Text       string    `json:"text" db:"text"`
+	CreateDate time.Time `json:"createDate" db:"create_date"`
 }
 
 type NewComment struct {

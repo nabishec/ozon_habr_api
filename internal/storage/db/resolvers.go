@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/nabishec/ozon_habr_api/internal/model"
-	"github.com/nabishec/ozon_habr_api/internal/storage"
+	"github.com/nabishec/ozon_habr_api/internal/pkg/errs"
 	"github.com/rs/zerolog/log"
 )
 
@@ -30,7 +31,7 @@ func NewStorage(db *sqlx.DB, cache *cache.Cache) *Storage {
 }
 
 func (r *Storage) AddPost(newPost *model.NewPost) (*model.Post, error) {
-	op := "internal.storage.db.NewPost()"
+	op := "internal.storage.db.AddPost()"
 
 	log.Debug().Msgf("%s start", op)
 
@@ -56,6 +57,132 @@ func (r *Storage) AddPost(newPost *model.NewPost) (*model.Post, error) {
 	return post, err
 }
 
+func (r *Storage) AddComment(postID int64, newComment *model.NewComment) (*model.Comment, error) {
+	op := "internal.storage.db.AddComment()"
+
+	log.Debug().Msgf("%s start", op)
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return nil, fmt.Errorf("%s:%w", op, err)
+	}
+	defer func() {
+		if err != nil {
+			errRB := tx.Rollback()
+			if errRB != nil {
+				log.Error().Err(errRB).Msg(" roll back transaction failed")
+			}
+		}
+	}()
+
+	comment := &model.Comment{
+		AuthorID:   newComment.AuthorID,
+		PostID:     postID,
+		ParentID:   newComment.ParentID,
+		Text:       newComment.Text,
+		CreateDate: time.Now(),
+	}
+
+	queryGetCommentEnabledForPost := `SELECT comments_enabled 
+							FROM Posts 
+							WHERE post_id = $1`
+
+	queryGetParentPath := `SELECT path
+							FROM Comments
+							WHERE comment_id = $1 AND post_id = $2`
+
+	queryNewComment := `INSERT INTO Comments (author_id, post_id, parent_id, path, replies_level, text, create_date)
+						VALUES ($1, $2, $3, $4, $5, $6, $7)
+						RETURNING comment_id `
+
+	queryUpdateCommentPath := `UPDATE Comments
+							SET path = $1, replies_level = $2
+							WHERE comment_id = $3`
+
+	var commentEnabled bool
+	err = tx.Get(&commentEnabled, queryGetCommentEnabledForPost, postID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errs.ErrPostNotExist
+		}
+		return nil, fmt.Errorf("%s:%w", op, err)
+	}
+
+	if commentEnabled == false {
+		return nil, errs.ErrCommentsNotEnabled
+	}
+
+	var parentPath string
+	if comment.ParentID != nil {
+		err = tx.Get(&parentPath, queryGetParentPath, comment.ParentID, comment.PostID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, errs.ErrParentCommentNotExist
+			}
+			return nil, fmt.Errorf("%s:%w", op, err)
+		}
+		parentPath += "."
+	}
+	// we specify 0 as the path and 1 as rep. level, because we know that the comment ID cannot be zero, and the query did not return errors due to not null
+	err = tx.QueryRow(queryNewComment, comment.AuthorID, comment.PostID, comment.ParentID, "0", 1, comment.Text, comment.CreateDate).Scan(&comment.ID)
+
+	if err != nil {
+		return nil, fmt.Errorf("%s:%w", op, err)
+	}
+
+	path := parentPath + strconv.FormatInt(comment.ID, 10)
+	repliceLevel := strings.Count(path, ".") + 1
+
+	_, err = tx.Exec(queryUpdateCommentPath, path, repliceLevel, comment.ID)
+	if err != nil {
+		return nil, fmt.Errorf("%s:%w", op, err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, fmt.Errorf("%s:%w", op, err)
+	}
+
+	comment.Path = path
+
+	commentsBranch, err := r.GetCommentsToPostFromCashe(comment.PostID, parentPath)
+	if err == nil {
+		commentsBranch = append(commentsBranch, comment)
+		err = r.SetCommentsBranchToPostInCache(commentsBranch, comment.PostID, parentPath[:len(parentPath)-1])
+		if err != nil {
+			return nil, fmt.Errorf("%s:%w", op, err) // it must be update in future
+		}
+	}
+
+	log.Debug().Msgf("%s end", op)
+	return comment, nil
+}
+
+func (r *Storage) SetCommentsBranchToPostInCache(commentsBranch []*model.Comment, postID int64, path string) error {
+	op := "internal.storage.db.SetCommentsBranchToPostInCache()"
+	log.Debug().Msgf("%s start", op)
+
+	var err error
+	if path == "" {
+		err = r.cache.Set(&cache.Item{
+			Key:   "post:" + strconv.FormatInt(postID, 10),
+			Value: commentsBranch,
+			TTL:   time.Hour,
+		})
+	} else {
+		err = r.cache.Set(&cache.Item{
+			Key:   "comments:" + path,
+			Value: commentsBranch,
+			TTL:   time.Hour,
+		})
+	}
+
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	log.Debug().Msgf("%s end", op)
+	return nil
+}
 func (r *Storage) UpdateEnableCommentToPost(postID int64, authorID uuid.UUID, commentsEnabled bool) (*model.Post, error) {
 	op := "internal.storage.db.UpdateEnableCommentToPost()"
 
@@ -67,7 +194,10 @@ func (r *Storage) UpdateEnableCommentToPost(postID int64, authorID uuid.UUID, co
 	}
 	defer func() {
 		if err != nil {
-			tx.Rollback()
+			errRB := tx.Rollback()
+			if errRB != nil {
+				log.Error().Err(errRB).Msg(" roll back transaction failed")
+			}
 		}
 	}()
 
@@ -87,13 +217,13 @@ func (r *Storage) UpdateEnableCommentToPost(postID int64, authorID uuid.UUID, co
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, storage.ErrPostNotExist
+			return nil, errs.ErrPostNotExist
 		}
 		return nil, fmt.Errorf("%s:%w", op, err)
 	}
 
 	if post.AuthorID != authorID {
-		return nil, storage.ErrUnauthorizedAccess
+		return nil, errs.ErrUnauthorizedAccess
 	}
 
 	_, err = tx.Exec(queryUpdatePost, commentsEnabled, postID)
@@ -126,7 +256,7 @@ func (r *Storage) GetAllPosts() ([]*model.Post, error) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, storage.ErrPostsNotExist
+			return nil, errs.ErrPostsNotExist
 		}
 		return nil, fmt.Errorf("%s:%w", op, err)
 	}
@@ -150,7 +280,7 @@ func (r *Storage) GetPost(postID int64) (*model.Post, error) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, storage.ErrPostNotExist
+			return nil, errs.ErrPostNotExist
 		}
 		return nil, fmt.Errorf("%s:%w", op, err)
 	}
@@ -167,13 +297,11 @@ func (r *Storage) GetCommentsBranch(postID int64, path string) ([]*model.Comment
 
 	allComments, err := r.GetCommentsToPostFromCashe(postID, path)
 	if err != nil {
-		if err == storage.ErrPathNotExist {
+		if err == errs.ErrPathNotExist {
 			return nil, err
 		}
 		log.Warn().Err(err).Msg("Cache returned error")
-	}
-	// TODO: check if this ip is not necessary
-	if len(allComments) != 0 {
+	} else {
 		return allComments, nil
 	}
 
@@ -182,7 +310,7 @@ func (r *Storage) GetCommentsBranch(postID int64, path string) ([]*model.Comment
 	queryGetCommentsToPost := `SELECT comment_id, author_id, post_id, parent_id, path, text, create_date
 								FROM Comments
 								WHERE post_id = $1
-								ORDER BY path,
+								ORDER BY string_to_array(path::text, '.')::int[],
 								create_date DESC`
 
 	err = r.db.Select(&allComments, queryGetCommentsToPost, postID)
@@ -191,12 +319,12 @@ func (r *Storage) GetCommentsBranch(postID int64, path string) ([]*model.Comment
 		return nil, fmt.Errorf("%s:%w", op, err)
 	}
 	if len(allComments) == 0 {
-		return nil, storage.ErrCommentsNotExist
+		return nil, errs.ErrCommentsNotExist
 	}
 
 	commentsMap, rootComments := CreateCommentMap(allComments)
 
-	err = r.SetCommentToPostInCache(commentsMap, rootComments, postID)
+	err = r.SetCommentsToPostInCache(commentsMap, rootComments, postID)
 	if err != nil {
 		log.Warn().Err(err).Msg("Cache returned error")
 	}
@@ -206,7 +334,7 @@ func (r *Storage) GetCommentsBranch(postID int64, path string) ([]*model.Comment
 		return rootComments, nil
 	} else {
 		if v, ok := commentsMap[path]; ok != true {
-			return nil, storage.ErrPathNotExist
+			return nil, errs.ErrPathNotExist
 		} else {
 			log.Debug().Msgf("%s end", op)
 			return v, nil
@@ -245,7 +373,7 @@ func (r *Storage) GetCommentsToPostFromCashe(postID int64, path string) ([]*mode
 	}
 
 	if len(rootComments) == 0 {
-		return nil, storage.ErrPostNotCached
+		return nil, errs.ErrPostNotCached
 	}
 
 	if path == "" {
@@ -258,11 +386,14 @@ func (r *Storage) GetCommentsToPostFromCashe(postID int64, path string) ([]*mode
 
 	err = r.cache.Get(context.Background(), "comments:"+path, &commentsBranch)
 	if err != nil {
+		if err == cache.ErrCacheMiss && len(rootComments) > 0 {
+			return nil, nil // it work when try get replies of comment without replies
+		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	if len(commentsBranch) == 0 {
-		return nil, storage.ErrPathNotExist
+		return nil, errs.ErrPathNotExist
 	}
 
 	log.Debug().Msgf("%s end", op)
@@ -270,7 +401,7 @@ func (r *Storage) GetCommentsToPostFromCashe(postID int64, path string) ([]*mode
 
 }
 
-func (r *Storage) SetCommentToPostInCache(commentsMap map[string][]*model.Comment, rootComments []*model.Comment, postID int64) error {
+func (r *Storage) SetCommentsToPostInCache(commentsMap map[string][]*model.Comment, rootComments []*model.Comment, postID int64) error {
 	op := "internal.storage.db.SetCommentToPostInCache()"
 	log.Debug().Msgf("%s start", op)
 
@@ -332,7 +463,7 @@ func (r *Storage) GetCommentPath(commentID int64) (string, error) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return "", storage.ErrCommentsNotExist
+			return "", errs.ErrCommentsNotExist
 		}
 		return "", fmt.Errorf("%s:%w", op, err)
 	}
