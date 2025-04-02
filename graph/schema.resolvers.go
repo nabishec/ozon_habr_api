@@ -11,10 +11,56 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nabishec/ozon_habr_api/graph/model"
+	"github.com/nabishec/ozon_habr_api/internal/lib/cursor"
 	internalmodel "github.com/nabishec/ozon_habr_api/internal/model"
 	"github.com/nabishec/ozon_habr_api/internal/storage"
 	"github.com/rs/zerolog/log"
 )
+
+// Replies is the resolver for the replies field.
+func (r *commentResolver) Replies(ctx context.Context, obj *model.Comment, first *int32, after *string) (*model.CommentConnection, error) {
+	const op = "graph.Replies()"
+
+	log.Debug().Msgf("%s start", op)
+
+	var path string
+	var err error
+	if after != nil {
+		err = cursor.ValidateAfter(after)
+		if err != nil {
+			return nil, errors.New("invalid after")
+		}
+
+		path, err = cursor.GetPath(after)
+		if err != nil {
+			return nil, errors.New("invalid after")
+		}
+	} else {
+		path, err = r.CommentQuery.GetPathToComments(obj.ID)
+		if err != nil {
+			if err != storage.ErrCommentsNotExist {
+				err = errors.New("internal server error")
+			}
+
+			return nil, err
+		}
+	}
+
+	internalCommentsBranch, err := r.CommentQuery.GetCommentsBranchToPost(obj.PostID, path)
+	if err != nil {
+		if err != storage.ErrCommentsNotExist && err != storage.ErrPathNotExist {
+			err = errors.New("internal server error")
+		}
+		return nil, err
+
+	}
+
+	commentBranch, err := paginateInternalBranch(internalCommentsBranch, first, after)
+
+	log.Debug().Msgf("%s end", op)
+
+	return commentBranch, nil
+}
 
 // AddPost is the resolver for the addPost field.
 func (r *mutationResolver) AddPost(ctx context.Context, postInput model.NewPost) (*model.Post, error) {
@@ -28,30 +74,30 @@ func (r *mutationResolver) AddPost(ctx context.Context, postInput model.NewPost)
 	if err != nil {
 		log.Error().Err(err).Msgf("%s end with error", op)
 
-		return nil, err
+		return nil, errors.New("internal server error")
 	}
 
 	log.Debug().Msgf("%s end", op)
 	return postFromInternalModel(post), err
 }
 
-func postToInternalModel(postInput *model.NewPost) *internalmodel.NewPost {
+func postToInternalModel(internalPost *model.NewPost) *internalmodel.NewPost {
 	return &internalmodel.NewPost{
-		AuthorID:        postInput.AuthorID,
-		Title:           postInput.Title,
-		Text:            postInput.Text,
-		CommentsEnabled: postInput.CommentsEnabled,
+		AuthorID:        internalPost.AuthorID,
+		Title:           internalPost.Title,
+		Text:            internalPost.Text,
+		CommentsEnabled: internalPost.CommentsEnabled,
 	}
 }
 
-func postFromInternalModel(postInput *internalmodel.Post) *model.Post {
+func postFromInternalModel(internalPost *internalmodel.Post) *model.Post {
 	return &model.Post{
-		ID:              postInput.ID,
-		AuthorID:        postInput.AuthorID,
-		Title:           postInput.Title,
-		Text:            postInput.Text,
-		CommentsEnabled: postInput.CommentsEnabled,
-		CreateDate:      postInput.CreateDate,
+		ID:              internalPost.ID,
+		AuthorID:        internalPost.AuthorID,
+		Title:           internalPost.Title,
+		Text:            internalPost.Text,
+		CommentsEnabled: internalPost.CommentsEnabled,
+		CreateDate:      internalPost.CreateDate,
 	}
 }
 
@@ -70,7 +116,7 @@ func (r *mutationResolver) UpdateEnableComment(ctx context.Context, postID int64
 
 	if err != nil {
 		log.Error().Err(err).Msgf("%s end with error", op)
-		if err != storage.ErrPostNotExist || err != storage.ErrUnauthorizedAccess {
+		if err != storage.ErrPostNotExist && err != storage.ErrUnauthorizedAccess {
 			err = errors.New("internal server error")
 		}
 		return nil, err
@@ -78,6 +124,122 @@ func (r *mutationResolver) UpdateEnableComment(ctx context.Context, postID int64
 
 	log.Debug().Msgf("%s end", op)
 	return postFromInternalModel(post), err
+}
+
+// Comments is the resolver for the comments field.
+func (r *postResolver) Comments(ctx context.Context, obj *model.Post, first *int32, after *string) (*model.CommentConnection, error) {
+	const op = "graph.Comments()"
+
+	log.Debug().Msgf("%s start", op)
+
+	var path string
+	if after != nil {
+		err := cursor.ValidateAfter(after)
+		if err != nil {
+			return nil, errors.New("invalid after")
+		}
+
+		path, err = cursor.GetPath(after)
+		if err != nil {
+			return nil, errors.New("invalid after")
+		}
+	}
+
+	internalCommentsBranch, err := r.CommentQuery.GetCommentsBranchToPost(obj.ID, path)
+	if err != nil {
+		if err != storage.ErrCommentsNotExist && err != storage.ErrPathNotExist {
+			err = errors.New("internal server error")
+		}
+		return nil, err
+
+	}
+
+	commentBranch, err := paginateInternalBranch(internalCommentsBranch, first, after)
+
+	log.Debug().Msgf("%s end", op)
+
+	return commentBranch, nil
+}
+
+const defaultFirst int = 5
+
+func paginateInternalBranch(internalComments []*internalmodel.Comment, firstInput *int32, after *string) (*model.CommentConnection, error) {
+
+	var first int
+	if firstInput == nil {
+		first = defaultFirst
+	} else {
+		first = int(*firstInput)
+	}
+
+	var edges = make([]*model.CommentEdge, 0, first)
+
+	start := false
+	var commentID int64
+	var err error
+	if after != nil {
+		commentID, err = cursor.GetCommentID(after)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		start = true
+	}
+
+	var hasNextPage = false
+	var counter = 0
+	for i, v := range internalComments {
+		if v.ID == commentID && start == false {
+			start = true
+			continue
+		}
+
+		if start == true {
+			edges = append(edges, &model.CommentEdge{
+				Node:   commentFromInternalModel(v),
+				Cursor: cursor.CreateCursorFromComment(v),
+			})
+			counter += 1
+		}
+
+		if counter == first {
+			if i+1 < len(internalComments) {
+				hasNextPage = true
+			}
+			break
+		}
+	}
+	if start == false { // not found comment with commentID
+		return &model.CommentConnection{
+			Edges:    []*model.CommentEdge{},
+			PageInfo: &model.PageInfo{HasNextPage: false},
+		}, nil
+	}
+	var endCursor *string
+	if len(edges) > 0 {
+		endCursor = &edges[len(edges)-1].Cursor
+	}
+
+	pageInfo := &model.PageInfo{
+		EndCursor:   endCursor,
+		HasNextPage: hasNextPage,
+	}
+
+	return &model.CommentConnection{
+		Edges:    edges,
+		PageInfo: pageInfo,
+	}, nil
+}
+
+func commentFromInternalModel(internalComment *internalmodel.Comment) *model.Comment {
+	return &model.Comment{
+		ID:         internalComment.ID,
+		AuthorID:   internalComment.AuthorID,
+		PostID:     internalComment.PostID,
+		ParentID:   internalComment.ParentID,
+		Text:       internalComment.Text,
+		CreateDate: internalComment.CreateDate,
+	}
 }
 
 // Posts is the resolver for the posts field.
@@ -96,8 +258,8 @@ func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
 		return nil, err
 	}
 	posts := make([]*model.Post, len(internalPosts))
-	for i := 0; i < len(internalPosts); i++ {
-		posts[i] = postFromInternalModel(internalPosts[i])
+	for i, v := range internalPosts {
+		posts[i] = postFromInternalModel(v)
 	}
 
 	log.Debug().Msgf("%s end", op)
@@ -110,7 +272,7 @@ func (r *queryResolver) Post(ctx context.Context, postID int64) (*model.Post, er
 
 	log.Debug().Msgf("%s start", op)
 
-	post, err := r.PostQuery.GetPostWithComment(postID)
+	postInternal, err := r.PostQuery.GetPost(postID)
 
 	if err != nil {
 		log.Error().Err(err).Msgf("%s end with error", op)
@@ -120,8 +282,9 @@ func (r *queryResolver) Post(ctx context.Context, postID int64) (*model.Post, er
 		return nil, err
 	}
 
+	post := postFromInternalModel(postInternal)
 	log.Debug().Msgf("%s end", op)
-	return postFromInternalModel(post), err
+	return post, err
 }
 
 // CommentAdded is the resolver for the commentAdded field.
@@ -129,8 +292,14 @@ func (r *subscriptionResolver) CommentAdded(ctx context.Context, postID int64) (
 	panic(fmt.Errorf("not implemented: CommentAdded - commentAdded"))
 }
 
+// Comment returns CommentResolver implementation.
+func (r *Resolver) Comment() CommentResolver { return &commentResolver{r} }
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
+
+// Post returns PostResolver implementation.
+func (r *Resolver) Post() PostResolver { return &postResolver{r} }
 
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
@@ -138,6 +307,8 @@ func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 // Subscription returns SubscriptionResolver implementation.
 func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionResolver{r} }
 
+type commentResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
+type postResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }

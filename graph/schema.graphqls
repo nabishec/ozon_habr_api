@@ -12,7 +12,7 @@ type Post {
   title: String!
   text: String!
   commentsEnabled: Boolean!
-  comments(first: Int, after: Int64): CommentConnection
+  comments(first: Int, after: String): CommentConnection @goField(forceResolver: true)
   createDate: Time!
 }
 
@@ -38,7 +38,7 @@ type Comment {
   parentID: Int64
   text: String!
   createDate: Time!
-  replies(first: Int, after: Int64): CommentConnection
+  replies(first: Int, after: String): CommentConnection @goField(forceResolver: true)
 }
 
 type Query {
@@ -69,3 +69,9 @@ type Mutation {
 type Subscription {
   commentAdded(postID: Int64!): Comment!
 }
+
+directive @goField(
+	forceResolver: Boolean
+	name: String
+	omittable: Boolean
+) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION

@@ -11,9 +11,10 @@ type Comment struct {
 	AuthorID   uuid.UUID  `json:"authorID" db:"author_id"`
 	PostID     int64      `json:"postID" db:"post_id"`
 	ParentID   *int64     `json:"parentID,omitempty" db:"parent_id"`
+	Path       string     `db:"path"`
 	Text       string     `json:"text" db:"text"`
 	CreateDate time.Time  `json:"createDate" db:"create_date"`
-	Replies    *[]Comment `json:"replies,omitempty"`
+	Replies    []*Comment `json:"replies,omitempty"`
 }
 
 type NewComment struct {
@@ -36,6 +37,6 @@ type Post struct {
 	Title           string     `json:"title" db:"title"`
 	Text            string     `json:"text" db:"text"`
 	CommentsEnabled bool       `json:"commentsEnabled" db:"comments_enabled"`
-	Comments        *[]Comment `json:"comments,omitempty"`
+	Comments        []*Comment `json:"comments,omitempty"`
 	CreateDate      time.Time  `json:"createDate" db:"create_date"`
 }

@@ -34,7 +34,7 @@ func (h *PostQuery) GetAllPosts() ([]*model.Post, error) {
 	return posts, nil
 }
 
-func (h *PostQuery) GetPostWithComment(postID int64) (*model.Post, error) {
+func (h *PostQuery) GetPost(postID int64) (*model.Post, error) {
 	op := "internal.storage.db.GetPostWithComment()"
 
 	log.Debug().Msgf("%s start", op)
