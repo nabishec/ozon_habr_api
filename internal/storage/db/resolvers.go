@@ -170,13 +170,13 @@ func (r *Storage) setCommentsBranchToPostInCache(commentsBranch []*model.Comment
 		err = r.cache.Set(&cache.Item{
 			Key:   "post:" + strconv.FormatInt(postID, 10),
 			Value: commentsBranch,
-			TTL:   time.Hour,
+			TTL:   30 * time.Minute,
 		})
 	} else {
 		err = r.cache.Set(&cache.Item{
 			Key:   "comments:" + path,
 			Value: commentsBranch,
-			TTL:   time.Hour,
+			TTL:   30 * time.Minute,
 		})
 	}
 
@@ -424,7 +424,7 @@ func (r *Storage) setCommentsToPostInCache(commentsMap map[string][]*model.Comme
 			err := r.cache.Set(&cache.Item{
 				Key:   "comments:" + path,
 				Value: comments,
-				TTL:   time.Hour,
+				TTL:   30 * time.Minute,
 			})
 
 			mu.Lock()
@@ -444,7 +444,7 @@ func (r *Storage) setCommentsToPostInCache(commentsMap map[string][]*model.Comme
 	err := r.cache.Set(&cache.Item{
 		Key:   "post:" + strconv.FormatInt(postID, 10),
 		Value: rootComments,
-		TTL:   time.Hour,
+		TTL:   30 * time.Minute,
 	})
 
 	if err != nil {
