@@ -16,6 +16,7 @@ type Resolver struct {
 	PostQuery       *postquery.PostQuery
 	CommentMutation *commentmutation.CommentMutation
 	CommentQuery    *commentquery.CommentQuery
+	Subscribers     *Subscribers
 }
 
 func NewResolver(postMutation *postmutation.PostMutation, postQuery *postquery.PostQuery, commentMutation *commentmutation.CommentMutation, commentQuery *commentquery.CommentQuery) *Resolver {
@@ -24,5 +25,6 @@ func NewResolver(postMutation *postmutation.PostMutation, postQuery *postquery.P
 		PostQuery:       postQuery,
 		CommentMutation: commentMutation,
 		CommentQuery:    commentQuery,
+		Subscribers:     NewSubscribers(),
 	}
 }

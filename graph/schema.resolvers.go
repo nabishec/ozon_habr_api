@@ -7,7 +7,6 @@ package graph
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/nabishec/ozon_habr_api/graph/model"
@@ -119,8 +118,10 @@ func (r *mutationResolver) AddComment(ctx context.Context, commentInput model.Ne
 		return nil, err
 	}
 
+	comment := commentFromInternalModel(internalComment)
+	r.Subscribers.Pub(commentInput.PostID, comment)
 	log.Debug().Msgf("%s end", op)
-	return commentFromInternalModel(internalComment), nil
+	return comment, nil
 }
 
 func newCommentToInternalModel(newComment *model.NewComment) *internalmodel.NewComment {
@@ -315,7 +316,24 @@ func (r *queryResolver) Post(ctx context.Context, postID int64) (*model.Post, er
 
 // CommentAdded is the resolver for the commentAdded field.
 func (r *subscriptionResolver) CommentAdded(ctx context.Context, postID int64) (<-chan *model.Comment, error) {
-	panic(fmt.Errorf("not implemented: CommentAdded - commentAdded"))
+	const op = "graph.CommentAdded()"
+	log.Debug().Msgf("%s subscription init", op)
+	ch := make(chan *model.Comment, 10)
+
+	go func() {
+		defer r.Subscribers.CloseSub(postID, ch)
+
+		r.Subscribers.Sub(postID, ch)
+		for {
+			select {
+			case <-ctx.Done():
+				log.Debug().Msgf("%s subscription closed", op)
+				return
+			}
+		}
+	}()
+	return ch, nil
+
 }
 
 // Comment returns CommentResolver implementation.

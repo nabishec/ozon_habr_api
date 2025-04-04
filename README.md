@@ -64,7 +64,8 @@ Redis кэширование используется для хранения к
 `│   ├──` [`generated.go`](./graph/generated.go)                 (Сгенерированный код GraphQL (gqlgen))<br>
 `│   ├──` [`resolver.go`](./graph/resolver.go)                 (Основные резолверы GraphQL)<br>
 `│   ├──` [`schema.graphqls`](./graph/schema.graphqls)             (Определение GraphQL схемы)<br>
-`│   └──` [`schema.resolvers.go`](./graph/schema.resolvers.go)         (Реализация резолверов GraphQL)<br>
+`│   ├──` [`schema.resolvers.go`](./graph/schema.resolvers.go)         (Реализация резолверов GraphQL)<br>
+`│   └──` [`subscription.go`](./graph/subscription.go)         (Реализация структур и методов для управления подписками)<br>
 `├── internal/`<br>
 `│   ├── handlers/`<br>
 `│   │   ├── comment_mutation/`                (Обработчики логики мутаций комментариев)<br>

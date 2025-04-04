@@ -3,7 +3,10 @@ package server
 import (
 	"net/http"
 	"os"
+	"slices"
+	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
 
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -37,8 +40,19 @@ func RunServer(storage storage.StorageImp) {
 	resolver := graph.NewResolver(postMutation, postQuery, commentMutation, commentQuery)
 
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
-
 	srv.AddTransport(transport.Options{})
+	srv.AddTransport(transport.Websocket{
+		KeepAlivePingInterval: 10 * time.Second,
+		Upgrader: websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				origin := r.Header.Get("Origin")
+				if origin == "" || origin == r.Header.Get("Host") {
+					return true
+				}
+				return slices.Contains([]string{"http://localhost:8080", "https://ozonhabr.com"}, origin)
+			},
+		},
+	})
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})
 	srv.AddTransport(transport.GRAPHQL{})

@@ -151,8 +151,12 @@ func (r *Storage) AddComment(postID int64, newComment *model.NewComment) (*model
 		if err != nil {
 			return nil, fmt.Errorf("%s:%w", op, err) // it must be update in future
 		}
+	} else {
+		if err != cache.ErrCacheMiss {
+			log.Warn().Err(err).Msg("cache returned error")
+		}
+		err = nil
 	}
-
 	log.Debug().Msgf("%s end", op)
 	return comment, nil
 }
@@ -369,6 +373,9 @@ func (r *Storage) GetCommentsToPostFromCashe(postID int64, path string) ([]*mode
 	var rootComments []*model.Comment
 	err := r.cache.Get(context.Background(), "post:"+strconv.FormatInt(postID, 10), &rootComments)
 	if err != nil {
+		if err == cache.ErrCacheMiss {
+			return nil, err
+		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
