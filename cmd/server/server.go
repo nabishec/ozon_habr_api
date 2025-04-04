@@ -38,8 +38,20 @@ func RunServer(storage storage.StorageImp) {
 	commentQuery := commentquery.NewCommentQuery(storage)
 
 	resolver := graph.NewResolver(postMutation, postQuery, commentMutation, commentQuery)
+	c := graph.Config{Resolvers: resolver}
 
-	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
+	countComplexityComment := func(childComplexity int, first *int32, after *string) int {
+		return int(*first) * childComplexity
+	}
+	countComplexityReplice := func(childComplexity int, first *int32, after *string) int {
+		return int(*first) * childComplexity
+	}
+
+	c.Complexity.Post.Comments = countComplexityComment
+	c.Complexity.Comment.Replies = countComplexityReplice
+
+	srv := handler.New(graph.NewExecutableSchema(c))
+
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.Websocket{
 		KeepAlivePingInterval: 10 * time.Second,
@@ -62,7 +74,7 @@ func RunServer(storage storage.StorageImp) {
 	srv.Use(extension.AutomaticPersistedQuery{
 		Cache: lru.New[string](100),
 	})
-
+	srv.Use(extension.FixedComplexityLimit(450)) // limit to +- 50 commments because there is not much space on web page
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)
 
