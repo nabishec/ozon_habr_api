@@ -118,7 +118,7 @@ RUN go build -o main ./cmd/main.go -s m
             authorID: "123e4567-e89b-12d3-a456-426614174000",
             postID: 1,
             parentID: 1, # ID существующего комментария
-            text: "Это ответ на комментарий 2"
+            text: "Это ответ на комментарий 1"
         }) {
             id
             text
