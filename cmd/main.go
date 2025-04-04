@@ -10,6 +10,7 @@ import (
 	"github.com/nabishec/ozon_habr_api/cmd/server"
 	"github.com/nabishec/ozon_habr_api/internal/storage"
 	"github.com/nabishec/ozon_habr_api/internal/storage/db"
+	inmemory "github.com/nabishec/ozon_habr_api/internal/storage/in-memory"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -86,8 +87,11 @@ func createStorage(storageType string) (storage.StorageImp, error) {
 }
 
 func createResolverInMemory() (storage.StorageImp, error) {
-	//TODO: write logic
-	return nil, nil
+	const op = "cmd.createResolverInMemory()"
+
+	inmemory := inmemory.NewStorage()
+
+	return inmemory, nil
 }
 
 func createResolverWithDB() (storage.StorageImp, error) {

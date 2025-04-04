@@ -144,10 +144,10 @@ func (r *Storage) AddComment(postID int64, newComment *model.NewComment) (*model
 
 	comment.Path = path
 
-	commentsBranch, err := r.GetCommentsToPostFromCashe(comment.PostID, parentPath)
+	commentsBranch, err := r.getCommentsToPostFromCashe(comment.PostID, parentPath)
 	if err == nil {
 		commentsBranch = append(commentsBranch, comment)
-		err = r.SetCommentsBranchToPostInCache(commentsBranch, comment.PostID, parentPath[:len(parentPath)-1])
+		err = r.setCommentsBranchToPostInCache(commentsBranch, comment.PostID, parentPath[:len(parentPath)-1])
 		if err != nil {
 			return nil, fmt.Errorf("%s:%w", op, err) // it must be update in future
 		}
@@ -161,7 +161,7 @@ func (r *Storage) AddComment(postID int64, newComment *model.NewComment) (*model
 	return comment, nil
 }
 
-func (r *Storage) SetCommentsBranchToPostInCache(commentsBranch []*model.Comment, postID int64, path string) error {
+func (r *Storage) setCommentsBranchToPostInCache(commentsBranch []*model.Comment, postID int64, path string) error {
 	op := "internal.storage.db.SetCommentsBranchToPostInCache()"
 	log.Debug().Msgf("%s start", op)
 
@@ -299,7 +299,7 @@ func (r *Storage) GetCommentsBranch(postID int64, path string) ([]*model.Comment
 
 	log.Debug().Msgf("%s start", op)
 
-	allComments, err := r.GetCommentsToPostFromCashe(postID, path)
+	allComments, err := r.getCommentsToPostFromCashe(postID, path)
 	if err != nil {
 		if err == errs.ErrPathNotExist {
 			return nil, err
@@ -326,9 +326,9 @@ func (r *Storage) GetCommentsBranch(postID int64, path string) ([]*model.Comment
 		return nil, errs.ErrCommentsNotExist
 	}
 
-	commentsMap, rootComments := CreateCommentMap(allComments)
+	commentsMap, rootComments := createCommentMap(allComments)
 
-	err = r.SetCommentsToPostInCache(commentsMap, rootComments, postID)
+	err = r.setCommentsToPostInCache(commentsMap, rootComments, postID)
 	if err != nil {
 		log.Warn().Err(err).Msg("Cache returned error")
 	}
@@ -347,7 +347,7 @@ func (r *Storage) GetCommentsBranch(postID int64, path string) ([]*model.Comment
 
 }
 
-func CreateCommentMap(allComments []*model.Comment) (map[string][]*model.Comment, []*model.Comment) {
+func createCommentMap(allComments []*model.Comment) (map[string][]*model.Comment, []*model.Comment) {
 
 	var rootComments []*model.Comment
 	var commentsMap = make(map[string][]*model.Comment)
@@ -366,7 +366,7 @@ func CreateCommentMap(allComments []*model.Comment) (map[string][]*model.Comment
 	return commentsMap, rootComments
 }
 
-func (r *Storage) GetCommentsToPostFromCashe(postID int64, path string) ([]*model.Comment, error) {
+func (r *Storage) getCommentsToPostFromCashe(postID int64, path string) ([]*model.Comment, error) {
 	op := "internal.storage.db.GetCommentsToPostFromCashe()"
 	log.Debug().Msgf("%s start", op)
 
@@ -408,7 +408,7 @@ func (r *Storage) GetCommentsToPostFromCashe(postID int64, path string) ([]*mode
 
 }
 
-func (r *Storage) SetCommentsToPostInCache(commentsMap map[string][]*model.Comment, rootComments []*model.Comment, postID int64) error {
+func (r *Storage) setCommentsToPostInCache(commentsMap map[string][]*model.Comment, rootComments []*model.Comment, postID int64) error {
 	op := "internal.storage.db.SetCommentToPostInCache()"
 	log.Debug().Msgf("%s start", op)
 
@@ -475,6 +475,6 @@ func (r *Storage) GetCommentPath(commentID int64) (string, error) {
 		return "", fmt.Errorf("%s:%w", op, err)
 	}
 
-	log.Debug().Msgf("%s start", op)
+	log.Debug().Msgf("%s end", op)
 	return path, nil
 }
