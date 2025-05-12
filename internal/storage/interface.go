@@ -13,6 +13,6 @@ type StorageImp interface {
 	UpdateEnableCommentToPost(ctx context.Context, postID int64, authorID uuid.UUID, commentsEnabled bool) (*model.Post, error)
 	GetAllPosts(ctx context.Context) ([]*model.Post, error)
 	GetPost(ctx context.Context, postID int64) (*model.Post, error)
-	GetCommentsBranch(postID int64, path string) ([]*model.Comment, error)
-	GetCommentPath(parentID int64) (string, error)
+	GetCommentsBranch(ctx context.Context, postID int64, path string) ([]*model.Comment, error)
+	GetCommentPath(ctx context.Context, parentID int64) (string, error)
 }

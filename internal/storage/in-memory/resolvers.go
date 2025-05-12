@@ -154,7 +154,7 @@ func (r *Storage) GetPost(ctx context.Context, postID int64) (*model.Post, error
 	return post, nil
 }
 
-func (r *Storage) GetCommentsBranch(postID int64, path string) ([]*model.Comment, error) {
+func (r *Storage) GetCommentsBranch(ctx context.Context, postID int64, path string) ([]*model.Comment, error) {
 	op := "internal.storage.inmemory.GetCommentsBranch()"
 
 	log.Debug().Msgf("%s start", op)
@@ -179,7 +179,7 @@ func (r *Storage) GetCommentsBranch(postID int64, path string) ([]*model.Comment
 
 }
 
-func (r *Storage) GetCommentPath(commentID int64) (string, error) {
+func (r *Storage) GetCommentPath(ctx context.Context, commentID int64) (string, error) {
 	op := "internal.storage.inmemory.GetCommentPath()"
 
 	log.Debug().Msgf("%s start", op)

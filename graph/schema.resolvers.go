@@ -35,7 +35,7 @@ func (r *commentResolver) Replies(ctx context.Context, obj *model.Comment, first
 			return nil, errors.New("invalid after")
 		}
 	} else {
-		path, err = r.CommentQuery.GetPathToComments(obj.ID)
+		path, err = r.CommentQuery.GetPathToComments(ctx, obj.ID)
 		if err != nil {
 			if err != errs.ErrCommentsNotExist {
 				err = errors.New("internal server error")
@@ -45,7 +45,7 @@ func (r *commentResolver) Replies(ctx context.Context, obj *model.Comment, first
 		}
 	}
 
-	internalCommentsBranch, err := r.CommentQuery.GetCommentsBranchToPost(obj.PostID, path)
+	internalCommentsBranch, err := r.CommentQuery.GetCommentsBranchToPost(ctx, obj.PostID, path)
 	if err != nil {
 		if err != errs.ErrCommentsNotExist {
 			if err == errs.ErrPathNotExist {
@@ -172,7 +172,7 @@ func (r *postResolver) Comments(ctx context.Context, obj *model.Post, first *int
 		}
 	}
 
-	internalCommentsBranch, err := r.CommentQuery.GetCommentsBranchToPost(obj.ID, path)
+	internalCommentsBranch, err := r.CommentQuery.GetCommentsBranchToPost(ctx, obj.ID, path)
 	if err != nil {
 		if err != errs.ErrCommentsNotExist && err != errs.ErrPathNotExist {
 			err = errors.New("internal server error")

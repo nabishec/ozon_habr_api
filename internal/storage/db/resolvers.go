@@ -296,12 +296,12 @@ func (r *Storage) GetPost(ctx context.Context, postID int64) (*model.Post, error
 	return post, nil
 }
 
-func (r *Storage) GetCommentsBranch(postID int64, path string) ([]*model.Comment, error) {
+func (r *Storage) GetCommentsBranch(ctx context.Context, postID int64, path string) ([]*model.Comment, error) {
 	op := "internal.storage.db.GetCommentsBranch()"
 
 	log.Debug().Msgf("%s start", op)
 
-	allComments, err := r.getCommentsToPostFromCashe(postID, path)
+	allComments, err := r.getCommentsToPostFromCashe(ctx, postID, path)
 	if err != nil {
 		if err == errs.ErrPathNotExist {
 			return nil, err
@@ -319,7 +319,7 @@ func (r *Storage) GetCommentsBranch(postID int64, path string) ([]*model.Comment
 								ORDER BY string_to_array(path::text, '.')::int[],
 								create_date DESC`
 
-	err = r.db.Select(&allComments, queryGetCommentsToPost, postID)
+	err = r.db.SelectContext(ctx, &allComments, queryGetCommentsToPost, postID)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", op, err)
@@ -330,7 +330,7 @@ func (r *Storage) GetCommentsBranch(postID int64, path string) ([]*model.Comment
 
 	commentsMap, rootComments := createCommentMap(allComments)
 
-	err = r.setCommentsToPostInCache(commentsMap, rootComments, postID)
+	err = r.setCommentsToPostInCache(ctx, commentsMap, rootComments, postID)
 	if err != nil {
 		log.Warn().Err(err).Msg("Cache returned error")
 	}
@@ -410,7 +410,7 @@ func (r *Storage) getCommentsToPostFromCashe(ctx context.Context, postID int64, 
 
 }
 
-func (r *Storage) setCommentsToPostInCache(commentsMap map[string][]*model.Comment, rootComments []*model.Comment, postID int64) error {
+func (r *Storage) setCommentsToPostInCache(ctx context.Context, commentsMap map[string][]*model.Comment, rootComments []*model.Comment, postID int64) error {
 	op := "internal.storage.db.SetCommentToPostInCache()"
 	log.Debug().Msgf("%s start", op)
 
@@ -424,6 +424,7 @@ func (r *Storage) setCommentsToPostInCache(commentsMap map[string][]*model.Comme
 			defer wg.Done()
 
 			err := r.cache.Set(&cache.Item{
+				Ctx:   ctx,
 				Key:   "comments:" + path,
 				Value: comments,
 				TTL:   30 * time.Minute,
@@ -444,6 +445,7 @@ func (r *Storage) setCommentsToPostInCache(commentsMap map[string][]*model.Comme
 	}
 
 	err := r.cache.Set(&cache.Item{
+		Ctx:   ctx,
 		Key:   "post:" + strconv.FormatInt(postID, 10),
 		Value: rootComments,
 		TTL:   30 * time.Minute,
@@ -457,7 +459,7 @@ func (r *Storage) setCommentsToPostInCache(commentsMap map[string][]*model.Comme
 	return nil
 }
 
-func (r *Storage) GetCommentPath(commentID int64) (string, error) {
+func (r *Storage) GetCommentPath(ctx context.Context, commentID int64) (string, error) {
 	op := "internal.storage.db.GetCommentPath()"
 
 	log.Debug().Msgf("%s start", op)
@@ -468,7 +470,7 @@ func (r *Storage) GetCommentPath(commentID int64) (string, error) {
 								FROM Comments
 								WHERE  comment_id = $1`
 
-	err := r.db.Get(&path, queryGetCommentsToPost, commentID)
+	err := r.db.GetContext(ctx, &path, queryGetCommentsToPost, commentID)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
