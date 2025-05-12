@@ -66,11 +66,13 @@ func (r *Storage) AddComment(ctx context.Context, postID int64, newComment *mode
 		return nil, fmt.Errorf("%s:%w", op, err)
 	}
 	defer func() {
-		if err != nil {
+		if err != nil && err != errs.ErrCommentsNotEnabled && err != errs.ErrPostNotExist && err != errs.ErrParentCommentNotExist {
+
 			errRB := tx.Rollback()
 			if errRB != nil {
 				log.Error().Err(errRB).Msg(" roll back transaction failed")
 			}
+
 		}
 	}()
 
@@ -149,11 +151,12 @@ func (r *Storage) AddComment(ctx context.Context, postID int64, newComment *mode
 		commentsBranch = append(commentsBranch, comment)
 		err = r.setCommentsBranchToPostInCache(ctx, commentsBranch, comment.PostID, parentPath[:len(parentPath)-1])
 		if err != nil {
-			return nil, fmt.Errorf("%s:%w", op, err) // it must be update in future
+			log.Warn().Err(err).Msg("cache returned error")
+			err = nil
 		}
 	} else {
 		if err != cache.ErrCacheMiss {
-			log.Warn().Err(err).Msg("cache returned error")
+			log.Warn().Err(err).Msg("cache returned error") // logging cache error and return nil error because it is not critical
 		}
 		err = nil
 	}
@@ -199,7 +202,7 @@ func (r *Storage) UpdateEnableCommentToPost(ctx context.Context, postID int64, a
 		return nil, fmt.Errorf("%s:%w", op, err)
 	}
 	defer func() {
-		if err != nil {
+		if err != nil && err != errs.ErrPostNotExist && err != errs.ErrUnauthorizedAccess {
 			errRB := tx.Rollback()
 			if errRB != nil {
 				log.Error().Err(errRB).Msg(" roll back transaction failed")
