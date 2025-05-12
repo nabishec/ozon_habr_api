@@ -120,7 +120,7 @@ func (r *Storage) UpdateEnableCommentToPost(ctx context.Context, postID int64, a
 	return post, nil
 }
 
-func (r *Storage) GetAllPosts() ([]*model.Post, error) {
+func (r *Storage) GetAllPosts(ctx context.Context) ([]*model.Post, error) {
 	op := "internal.storage.inmemory.GetAllPosts()"
 
 	log.Debug().Msgf("%s start", op)
@@ -138,7 +138,7 @@ func (r *Storage) GetAllPosts() ([]*model.Post, error) {
 	return posts, nil
 }
 
-func (r *Storage) GetPost(postID int64) (*model.Post, error) {
+func (r *Storage) GetPost(ctx context.Context, postID int64) (*model.Post, error) {
 	op := "internal.storage.inmemory.GetPost()"
 
 	log.Debug().Msgf("%s start", op)

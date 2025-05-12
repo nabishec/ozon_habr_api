@@ -1,6 +1,7 @@
 package postquery
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/nabishec/ozon_habr_api/internal/model"
@@ -16,12 +17,12 @@ func NewPostQuery(postQueryImp PostQueryImp) *PostQuery {
 	return &PostQuery{postQueryImp: postQueryImp}
 }
 
-func (h *PostQuery) GetAllPosts() ([]*model.Post, error) {
+func (h *PostQuery) GetAllPosts(ctx context.Context) ([]*model.Post, error) {
 	op := "internal.handlers.postquery.GetAllPosts()"
 
 	log.Debug().Msgf("%s start", op)
 
-	posts, err := h.postQueryImp.GetAllPosts()
+	posts, err := h.postQueryImp.GetAllPosts(ctx)
 
 	if err != nil {
 		if err == errs.ErrPostsNotExist {
@@ -34,12 +35,12 @@ func (h *PostQuery) GetAllPosts() ([]*model.Post, error) {
 	return posts, nil
 }
 
-func (h *PostQuery) GetPost(postID int64) (*model.Post, error) {
+func (h *PostQuery) GetPost(ctx context.Context, postID int64) (*model.Post, error) {
 	op := "internal.handlers.postquery.GetPostWithComment()"
 
 	log.Debug().Msgf("%s start", op)
 
-	post, err := h.postQueryImp.GetPost(postID)
+	post, err := h.postQueryImp.GetPost(ctx, postID)
 
 	if err != nil {
 		if err == errs.ErrPostNotExist {

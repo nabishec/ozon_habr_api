@@ -1,10 +1,12 @@
 package postquery
 
 import (
+	"context"
+
 	"github.com/nabishec/ozon_habr_api/internal/model"
 )
 
 type PostQueryImp interface {
-	GetAllPosts() ([]*model.Post, error)
-	GetPost(postID int64) (*model.Post, error)
+	GetAllPosts(ctx context.Context) ([]*model.Post, error)
+	GetPost(ctx context.Context, postID int64) (*model.Post, error)
 }

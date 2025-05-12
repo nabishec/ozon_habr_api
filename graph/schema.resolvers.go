@@ -275,7 +275,7 @@ func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
 
 	log.Debug().Msgf("%s start", op)
 
-	internalPosts, err := r.PostQuery.GetAllPosts()
+	internalPosts, err := r.PostQuery.GetAllPosts(ctx)
 
 	if err != nil {
 		log.Error().Err(err).Msgf("%s end with error", op)
@@ -299,7 +299,7 @@ func (r *queryResolver) Post(ctx context.Context, postID int64) (*model.Post, er
 
 	log.Debug().Msgf("%s start", op)
 
-	postInternal, err := r.PostQuery.GetPost(postID)
+	postInternal, err := r.PostQuery.GetPost(ctx, postID)
 
 	if err != nil {
 		log.Error().Err(err).Msgf("%s end with error", op)

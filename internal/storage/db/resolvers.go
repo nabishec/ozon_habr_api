@@ -246,7 +246,7 @@ func (r *Storage) UpdateEnableCommentToPost(ctx context.Context, postID int64, a
 	return post, nil
 }
 
-func (r *Storage) GetAllPosts() ([]*model.Post, error) {
+func (r *Storage) GetAllPosts(ctx context.Context) ([]*model.Post, error) {
 	op := "internal.storage.db.GetAllPosts()"
 
 	log.Debug().Msgf("%s start", op)
@@ -256,7 +256,7 @@ func (r *Storage) GetAllPosts() ([]*model.Post, error) {
 						ORDER BY create_date`
 
 	var posts []*model.Post
-	err := r.db.Select(&posts, queryGetAllPosts)
+	err := r.db.SelectContext(ctx, &posts, queryGetAllPosts)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -270,7 +270,7 @@ func (r *Storage) GetAllPosts() ([]*model.Post, error) {
 	return posts, nil
 }
 
-func (r *Storage) GetPost(postID int64) (*model.Post, error) {
+func (r *Storage) GetPost(ctx context.Context, postID int64) (*model.Post, error) {
 	op := "internal.storage.db.GetPost()"
 
 	log.Debug().Msgf("%s start", op)
@@ -280,7 +280,7 @@ func (r *Storage) GetPost(postID int64) (*model.Post, error) {
 						WHERE post_id = $1`
 
 	var post = new(model.Post)
-	err := r.db.Get(post, queryGetPost, postID)
+	err := r.db.GetContext(ctx, post, queryGetPost, postID)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
