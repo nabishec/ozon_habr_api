@@ -30,7 +30,7 @@ func NewStorage(db *sqlx.DB, cache *cache.Cache) *Storage {
 	}
 }
 
-func (r *Storage) AddPost(newPost *model.NewPost) (*model.Post, error) {
+func (r *Storage) AddPost(ctx context.Context, newPost *model.NewPost) (*model.Post, error) {
 	op := "internal.storage.db.AddPost()"
 
 	log.Debug().Msgf("%s start", op)
@@ -47,7 +47,7 @@ func (r *Storage) AddPost(newPost *model.NewPost) (*model.Post, error) {
 						VALUES ($1, $2, $3, $4, $5)
 						RETURNING post_id `
 
-	err := r.db.QueryRow(queryNewPost, post.AuthorID, post.Title, post.Text, post.CommentsEnabled, post.CreateDate).Scan(&post.ID)
+	err := r.db.QueryRowContext(ctx, queryNewPost, post.AuthorID, post.Title, post.Text, post.CommentsEnabled, post.CreateDate).Scan(&post.ID)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", op, err)
@@ -187,12 +187,12 @@ func (r *Storage) setCommentsBranchToPostInCache(commentsBranch []*model.Comment
 	log.Debug().Msgf("%s end", op)
 	return nil
 }
-func (r *Storage) UpdateEnableCommentToPost(postID int64, authorID uuid.UUID, commentsEnabled bool) (*model.Post, error) {
+func (r *Storage) UpdateEnableCommentToPost(ctx context.Context, postID int64, authorID uuid.UUID, commentsEnabled bool) (*model.Post, error) {
 	op := "internal.storage.db.UpdateEnableCommentToPost()"
 
 	log.Debug().Msgf("%s start", op)
 
-	tx, err := r.db.Beginx()
+	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", op, err)
 	}
@@ -217,7 +217,7 @@ func (r *Storage) UpdateEnableCommentToPost(postID int64, authorID uuid.UUID, co
 							SET comments_enabled = $1
 							WHERE post_id = $2`
 
-	err = tx.Get(post, queryGetPost, postID)
+	err = tx.GetContext(ctx, post, queryGetPost, postID)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -230,7 +230,7 @@ func (r *Storage) UpdateEnableCommentToPost(postID int64, authorID uuid.UUID, co
 		return nil, errs.ErrUnauthorizedAccess
 	}
 
-	_, err = tx.Exec(queryUpdatePost, commentsEnabled, postID)
+	_, err = tx.ExecContext(ctx, queryUpdatePost, commentsEnabled, postID)
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", op, err)
 	}

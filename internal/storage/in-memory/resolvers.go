@@ -1,6 +1,7 @@
 package inmemory
 
 import (
+	"context"
 	"strconv"
 	"time"
 
@@ -30,7 +31,7 @@ func NewStorage() *Storage {
 	}
 }
 
-func (r *Storage) AddPost(newPost *model.NewPost) (*model.Post, error) {
+func (r *Storage) AddPost(ctx context.Context, newPost *model.NewPost) (*model.Post, error) {
 	op := "internal.storage.inmemory.AddPost()"
 
 	log.Debug().Msgf("%s start", op)
@@ -99,7 +100,7 @@ func (r *Storage) AddComment(postID int64, newComment *model.NewComment) (*model
 	return comment, nil
 }
 
-func (r *Storage) UpdateEnableCommentToPost(postID int64, authorID uuid.UUID, commentsEnabled bool) (*model.Post, error) {
+func (r *Storage) UpdateEnableCommentToPost(ctx context.Context, postID int64, authorID uuid.UUID, commentsEnabled bool) (*model.Post, error) {
 	op := "internal.storage.inmemory.UpdateEnableCommentToPost()"
 
 	log.Debug().Msgf("%s start", op)

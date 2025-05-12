@@ -71,7 +71,7 @@ func (r *mutationResolver) AddPost(ctx context.Context, postInput model.NewPost)
 	log.Debug().Msgf("%s start", op)
 
 	newPost := newPostToInternalModel(&postInput)
-	post, err := r.PostMutation.AddPost(newPost)
+	post, err := r.PostMutation.AddPost(ctx, newPost)
 
 	if err != nil {
 		log.Error().Err(err).Msgf("%s end with error", op)
@@ -139,7 +139,7 @@ func (r *mutationResolver) UpdateEnableComment(ctx context.Context, postID int64
 
 	log.Debug().Msgf("%s start", op)
 
-	post, err := r.PostMutation.UpdateEnableCommentToPost(postID, authorID, commentsEnabled)
+	post, err := r.PostMutation.UpdateEnableCommentToPost(ctx, postID, authorID, commentsEnabled)
 
 	if err != nil {
 		log.Error().Err(err).Msgf("%s end with error", op)
