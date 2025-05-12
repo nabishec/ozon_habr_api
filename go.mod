@@ -5,6 +5,7 @@ go 1.24.0
 require (
 	github.com/99designs/gqlgen v0.17.66
 	github.com/go-redis/cache/v9 v9.0.0
+	github.com/gojuno/minimock/v3 v3.4.5
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/jackc/pgx/v4 v4.18.3
@@ -18,6 +19,7 @@ require (
 require (
 	github.com/agnivade/levenshtein v1.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
@@ -32,6 +34,7 @@ require (
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sosodev/duration v1.3.1 // indirect
 	github.com/vmihailenco/go-tinylfu v0.2.2 // indirect
