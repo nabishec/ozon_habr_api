@@ -1,6 +1,7 @@
 package commentmutation
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/nabishec/ozon_habr_api/internal/model"
@@ -16,7 +17,7 @@ func NewCommentMutation(commentMutationImp CommentMutationImp) *CommentMutation 
 	return &CommentMutation{commentMutationImp: commentMutationImp}
 }
 
-func (h *CommentMutation) AddComment(postID int64, newComment *model.NewComment) (*model.Comment, error) {
+func (h *CommentMutation) AddComment(ctx context.Context, postID int64, newComment *model.NewComment) (*model.Comment, error) {
 	op := "internal.handlers.commentmutation.AddComment()"
 
 	log.Debug().Msgf("%s start", op)
@@ -25,7 +26,7 @@ func (h *CommentMutation) AddComment(postID int64, newComment *model.NewComment)
 		return nil, errs.ErrIncorrectCommentLength
 	}
 
-	comment, err := h.commentMutationImp.AddComment(postID, newComment)
+	comment, err := h.commentMutationImp.AddComment(ctx, postID, newComment)
 	if err != nil {
 		if err == errs.ErrPostNotExist || err == errs.ErrParentCommentNotExist || err == errs.ErrCommentsNotEnabled {
 			return nil, err

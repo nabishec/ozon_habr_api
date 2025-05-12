@@ -57,11 +57,11 @@ func (r *Storage) AddPost(ctx context.Context, newPost *model.NewPost) (*model.P
 	return post, err
 }
 
-func (r *Storage) AddComment(postID int64, newComment *model.NewComment) (*model.Comment, error) {
+func (r *Storage) AddComment(ctx context.Context, postID int64, newComment *model.NewComment) (*model.Comment, error) {
 	op := "internal.storage.db.AddComment()"
 
 	log.Debug().Msgf("%s start", op)
-	tx, err := r.db.Beginx()
+	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", op, err)
 	}
@@ -99,7 +99,7 @@ func (r *Storage) AddComment(postID int64, newComment *model.NewComment) (*model
 							WHERE comment_id = $3`
 
 	var commentEnabled bool
-	err = tx.Get(&commentEnabled, queryGetCommentEnabledForPost, postID)
+	err = tx.GetContext(ctx, &commentEnabled, queryGetCommentEnabledForPost, postID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errs.ErrPostNotExist
@@ -113,7 +113,7 @@ func (r *Storage) AddComment(postID int64, newComment *model.NewComment) (*model
 
 	var parentPath string
 	if comment.ParentID != nil {
-		err = tx.Get(&parentPath, queryGetParentPath, comment.ParentID, comment.PostID)
+		err = tx.GetContext(ctx, &parentPath, queryGetParentPath, comment.ParentID, comment.PostID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return nil, errs.ErrParentCommentNotExist
@@ -123,7 +123,7 @@ func (r *Storage) AddComment(postID int64, newComment *model.NewComment) (*model
 		parentPath += "."
 	}
 	// we specify 0 as the path and 1 as rep. level, because we know that the comment ID cannot be zero, and the query did not return errors due to not null
-	err = tx.QueryRow(queryNewComment, comment.AuthorID, comment.PostID, comment.ParentID, "0", 1, comment.Text, comment.CreateDate).Scan(&comment.ID)
+	err = tx.QueryRowContext(ctx, queryNewComment, comment.AuthorID, comment.PostID, comment.ParentID, "0", 1, comment.Text, comment.CreateDate).Scan(&comment.ID)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", op, err)
@@ -132,7 +132,7 @@ func (r *Storage) AddComment(postID int64, newComment *model.NewComment) (*model
 	path := parentPath + strconv.FormatInt(comment.ID, 10)
 	repliceLevel := strings.Count(path, ".") + 1
 
-	_, err = tx.Exec(queryUpdateCommentPath, path, repliceLevel, comment.ID)
+	_, err = tx.ExecContext(ctx, queryUpdateCommentPath, path, repliceLevel, comment.ID)
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", op, err)
 	}
@@ -144,10 +144,10 @@ func (r *Storage) AddComment(postID int64, newComment *model.NewComment) (*model
 
 	comment.Path = path
 
-	commentsBranch, err := r.getCommentsToPostFromCashe(comment.PostID, parentPath)
+	commentsBranch, err := r.getCommentsToPostFromCashe(ctx, comment.PostID, parentPath)
 	if err == nil {
 		commentsBranch = append(commentsBranch, comment)
-		err = r.setCommentsBranchToPostInCache(commentsBranch, comment.PostID, parentPath[:len(parentPath)-1])
+		err = r.setCommentsBranchToPostInCache(ctx, commentsBranch, comment.PostID, parentPath[:len(parentPath)-1])
 		if err != nil {
 			return nil, fmt.Errorf("%s:%w", op, err) // it must be update in future
 		}
@@ -161,19 +161,21 @@ func (r *Storage) AddComment(postID int64, newComment *model.NewComment) (*model
 	return comment, nil
 }
 
-func (r *Storage) setCommentsBranchToPostInCache(commentsBranch []*model.Comment, postID int64, path string) error {
+func (r *Storage) setCommentsBranchToPostInCache(ctx context.Context, commentsBranch []*model.Comment, postID int64, path string) error {
 	op := "internal.storage.db.SetCommentsBranchToPostInCache()"
 	log.Debug().Msgf("%s start", op)
 
 	var err error
 	if path == "" {
 		err = r.cache.Set(&cache.Item{
+			Ctx:   ctx,
 			Key:   "post:" + strconv.FormatInt(postID, 10),
 			Value: commentsBranch,
 			TTL:   30 * time.Minute,
 		})
 	} else {
 		err = r.cache.Set(&cache.Item{
+			Ctx:   ctx,
 			Key:   "comments:" + path,
 			Value: commentsBranch,
 			TTL:   30 * time.Minute,
@@ -366,12 +368,12 @@ func createCommentMap(allComments []*model.Comment) (map[string][]*model.Comment
 	return commentsMap, rootComments
 }
 
-func (r *Storage) getCommentsToPostFromCashe(postID int64, path string) ([]*model.Comment, error) {
+func (r *Storage) getCommentsToPostFromCashe(ctx context.Context, postID int64, path string) ([]*model.Comment, error) {
 	op := "internal.storage.db.GetCommentsToPostFromCashe()"
 	log.Debug().Msgf("%s start", op)
 
 	var rootComments []*model.Comment
-	err := r.cache.Get(context.Background(), "post:"+strconv.FormatInt(postID, 10), &rootComments)
+	err := r.cache.Get(ctx, "post:"+strconv.FormatInt(postID, 10), &rootComments)
 	if err != nil {
 		if err == cache.ErrCacheMiss {
 			return nil, err
@@ -391,7 +393,7 @@ func (r *Storage) getCommentsToPostFromCashe(postID int64, path string) ([]*mode
 
 	var commentsBranch []*model.Comment
 
-	err = r.cache.Get(context.Background(), "comments:"+path, &commentsBranch)
+	err = r.cache.Get(ctx, "comments:"+path, &commentsBranch)
 	if err != nil {
 		if err == cache.ErrCacheMiss && len(rootComments) > 0 {
 			return nil, nil // it work when try get replies of comment without replies

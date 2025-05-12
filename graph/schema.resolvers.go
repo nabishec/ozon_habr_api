@@ -110,7 +110,7 @@ func (r *mutationResolver) AddComment(ctx context.Context, commentInput model.Ne
 	log.Debug().Msgf("%s start", op)
 
 	newInternalComment := newCommentToInternalModel(&commentInput)
-	internalComment, err := r.CommentMutation.AddComment(newInternalComment.PostID, newInternalComment)
+	internalComment, err := r.CommentMutation.AddComment(ctx, newInternalComment.PostID, newInternalComment)
 	if err != nil {
 		if err != errs.ErrPostNotExist && err != errs.ErrParentCommentNotExist && err != errs.ErrCommentsNotEnabled {
 			err = errors.New("internal server error")

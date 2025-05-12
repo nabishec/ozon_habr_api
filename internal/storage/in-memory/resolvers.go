@@ -52,7 +52,7 @@ func (r *Storage) AddPost(ctx context.Context, newPost *model.NewPost) (*model.P
 	return post, nil
 }
 
-func (r *Storage) AddComment(postID int64, newComment *model.NewComment) (*model.Comment, error) {
+func (r *Storage) AddComment(ctx context.Context, postID int64, newComment *model.NewComment) (*model.Comment, error) {
 	op := "internal.storage.inmemory.AddComment()"
 
 	log.Debug().Msgf("%s start", op)

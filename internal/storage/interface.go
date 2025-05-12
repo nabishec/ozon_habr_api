@@ -9,7 +9,7 @@ import (
 
 type StorageImp interface {
 	AddPost(ctx context.Context, newPost *model.NewPost) (*model.Post, error)
-	AddComment(postID int64, newComment *model.NewComment) (*model.Comment, error)
+	AddComment(ctx context.Context, postID int64, newComment *model.NewComment) (*model.Comment, error)
 	UpdateEnableCommentToPost(ctx context.Context, postID int64, authorID uuid.UUID, commentsEnabled bool) (*model.Post, error)
 	GetAllPosts(ctx context.Context) ([]*model.Post, error)
 	GetPost(ctx context.Context, postID int64) (*model.Post, error)
