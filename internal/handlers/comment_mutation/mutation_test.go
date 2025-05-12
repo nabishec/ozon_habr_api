@@ -8,6 +8,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/nabishec/ozon_habr_api/internal/model"
 	"github.com/nabishec/ozon_habr_api/internal/pkg/errs"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAddComment(t *testing.T) {
@@ -33,13 +34,9 @@ func TestAddComment(t *testing.T) {
 		commentMutationImpMock.AddCommentMock.Expect(ctx, postID, newComment).Return(expectedComment, nil)
 
 		comment, err := handler.AddComment(ctx, postID, newComment)
-		if err != nil {
-			t.Fatalf("got error - %v", err)
-		}
+		assert.NoError(t, err)
 
-		if comment.ID != expectedComment.ID || comment.Text != expectedComment.Text {
-			t.Fatalf("expected %v, got %v", expectedComment, comment)
-		}
+		assert.Equal(t, expectedComment, comment)
 	})
 
 	t.Run("Error comment long", func(t *testing.T) {
@@ -50,9 +47,8 @@ func TestAddComment(t *testing.T) {
 		}
 
 		comment, err := handler.AddComment(ctx, postID, newComment)
-		if err != errs.ErrIncorrectCommentLength || comment != nil {
-			t.Fatalf("unexpected error - %v", err)
-		}
+		assert.Equal(t, errs.ErrIncorrectCommentLength, err)
+		assert.Nil(t, comment)
 
 	})
 
@@ -64,9 +60,8 @@ func TestAddComment(t *testing.T) {
 		}
 
 		comment, err := handler.AddComment(ctx, postID, newComment)
-		if err != errs.ErrIncorrectCommentLength || comment != nil {
-			t.Fatalf("unexpected error - %v", err)
-		}
+		assert.Equal(t, errs.ErrIncorrectCommentLength, err)
+		assert.Nil(t, comment)
 
 	})
 
@@ -80,13 +75,12 @@ func TestAddComment(t *testing.T) {
 		commentMutationImpMock.AddCommentMock.Expect(ctx, postID, newComment).Return(nil, errs.ErrPostNotExist)
 
 		comment, err := handler.AddComment(ctx, postID, newComment)
-		if err != errs.ErrPostNotExist || comment != nil {
-			t.Fatalf("unexpected error - %v", err)
-		}
+		assert.Equal(t, errs.ErrPostNotExist, err)
+		assert.Nil(t, comment)
 
 	})
 
-	t.Run("Error post not exist", func(t *testing.T) {
+	t.Run("Error parent comment not exist", func(t *testing.T) {
 		ctx := context.Background()
 		postID := int64(1)
 		newComment := &model.NewComment{
@@ -96,13 +90,12 @@ func TestAddComment(t *testing.T) {
 		commentMutationImpMock.AddCommentMock.Expect(ctx, postID, newComment).Return(nil, errs.ErrParentCommentNotExist)
 
 		comment, err := handler.AddComment(ctx, postID, newComment)
-		if err != errs.ErrParentCommentNotExist || comment != nil {
-			t.Fatalf("unexpected error - %v", err)
-		}
+		assert.Equal(t, errs.ErrParentCommentNotExist, err)
+		assert.Nil(t, comment)
 
 	})
 
-	t.Run("Error post not exist", func(t *testing.T) {
+	t.Run("Errorcomment not enabled", func(t *testing.T) {
 		ctx := context.Background()
 		postID := int64(1)
 		newComment := &model.NewComment{
@@ -112,9 +105,8 @@ func TestAddComment(t *testing.T) {
 		commentMutationImpMock.AddCommentMock.Expect(ctx, postID, newComment).Return(nil, errs.ErrCommentsNotEnabled)
 
 		comment, err := handler.AddComment(ctx, postID, newComment)
-		if err != errs.ErrCommentsNotEnabled || comment != nil {
-			t.Fatalf("unexpected error - %v", err)
-		}
+		assert.Equal(t, errs.ErrCommentsNotEnabled, err)
+		assert.Nil(t, comment)
 
 	})
 
