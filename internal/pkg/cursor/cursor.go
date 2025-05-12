@@ -14,7 +14,7 @@ func GetCommentID(after *string) (int64, error) {
 		return 0, err
 	}
 	lastIndex := strings.LastIndex(cursorLine, "/")
-	commentID, err := strconv.ParseInt(cursorLine[:lastIndex], 10, 64)
+	commentID, err := strconv.ParseInt(cursorLine[lastIndex+1:], 10, 64)
 	return commentID, err
 }
 
@@ -48,8 +48,11 @@ func ValidateAfter(after *string) error {
 	if err != nil {
 		return err
 	}
-	lastIndex := strings.LastIndex(cursorLine, "/")
-	_, err = strconv.ParseInt(cursorLine[:lastIndex], 10, 64)
+
+	cursorNumb := strings.Replace(cursorLine, "/", "", 1)
+	cursorNumb = strings.Replace(cursorNumb, ".", "", -1)
+
+	_, err = strconv.Atoi(cursorNumb) // check if cursorNumb is a number
 	return err
 }
 

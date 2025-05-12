@@ -182,6 +182,9 @@ func (r *postResolver) Comments(ctx context.Context, obj *model.Post, first *int
 	}
 
 	commentBranch, err := paginateInternalBranch(internalCommentsBranch, first, after)
+	if err != nil {
+		return nil, err
+	}
 
 	log.Debug().Msgf("%s end", op)
 
@@ -207,7 +210,7 @@ func paginateInternalBranch(internalComments []*internalmodel.Comment, firstInpu
 	if after != nil {
 		commentID, err = cursor.GetCommentID(after)
 		if err != nil {
-			return nil, err
+			return nil, errs.ErrInvalidAfterCursor
 		}
 	} else {
 		start = true

@@ -44,8 +44,8 @@ func (r *Storage) AddPost(ctx context.Context, newPost *model.NewPost) (*model.P
 	}
 
 	queryNewPost := `INSERT INTO Posts (author_id, title, text, comments_enabled, create_date)
-						VALUES ($1, $2, $3, $4, $5)
-						RETURNING post_id `
+							VALUES ($1, $2, $3, $4, $5)
+							RETURNING post_id `
 
 	err := r.db.QueryRowContext(ctx, queryNewPost, post.AuthorID, post.Title, post.Text, post.CommentsEnabled, post.CreateDate).Scan(&post.ID)
 
@@ -85,20 +85,20 @@ func (r *Storage) AddComment(ctx context.Context, postID int64, newComment *mode
 	}
 
 	queryGetCommentEnabledForPost := `SELECT comments_enabled 
-							FROM Posts 
-							WHERE post_id = $1`
+								FROM Posts 
+								WHERE post_id = $1`
 
 	queryGetParentPath := `SELECT path
-							FROM Comments
-							WHERE comment_id = $1 AND post_id = $2`
+								FROM Comments
+								WHERE comment_id = $1 AND post_id = $2`
 
 	queryNewComment := `INSERT INTO Comments (author_id, post_id, parent_id, path, replies_level, text, create_date)
-						VALUES ($1, $2, $3, $4, $5, $6, $7)
-						RETURNING comment_id `
+							VALUES ($1, $2, $3, $4, $5, $6, $7)
+							RETURNING comment_id `
 
 	queryUpdateCommentPath := `UPDATE Comments
-							SET path = $1, replies_level = $2
-							WHERE comment_id = $3`
+								SET path = $1, replies_level = $2
+								WHERE comment_id = $3`
 
 	var commentEnabled bool
 	err = tx.GetContext(ctx, &commentEnabled, queryGetCommentEnabledForPost, postID)
@@ -149,7 +149,10 @@ func (r *Storage) AddComment(ctx context.Context, postID int64, newComment *mode
 	commentsBranch, err := r.getCommentsToPostFromCashe(ctx, comment.PostID, parentPath)
 	if err == nil {
 		commentsBranch = append(commentsBranch, comment)
-		err = r.setCommentsBranchToPostInCache(ctx, commentsBranch, comment.PostID, parentPath[:len(parentPath)-1])
+		if parentPath != "" {
+			parentPath = parentPath[:len(parentPath)-1]
+		}
+		err = r.setCommentsBranchToPostInCache(ctx, commentsBranch, comment.PostID, parentPath)
 		if err != nil {
 			log.Warn().Err(err).Msg("cache returned error")
 			err = nil
@@ -215,12 +218,12 @@ func (r *Storage) UpdateEnableCommentToPost(ctx context.Context, postID int64, a
 	}
 
 	queryGetPost := `SELECT author_id, title, text, comments_enabled, create_date
-						FROM Posts
-						WHERE post_id = $1 `
+							FROM Posts
+							WHERE post_id = $1 `
 
 	queryUpdatePost := `UPDATE Posts
-							SET comments_enabled = $1
-							WHERE post_id = $2`
+								SET comments_enabled = $1
+								WHERE post_id = $2`
 
 	err = tx.GetContext(ctx, post, queryGetPost, postID)
 
@@ -257,8 +260,8 @@ func (r *Storage) GetAllPosts(ctx context.Context) ([]*model.Post, error) {
 	log.Debug().Msgf("%s start", op)
 
 	queryGetAllPosts := `SELECT post_id, author_id, title, text, comments_enabled, create_date
-						FROM Posts
-						ORDER BY create_date`
+							FROM Posts
+							ORDER BY create_date`
 
 	var posts []*model.Post
 	err := r.db.SelectContext(ctx, &posts, queryGetAllPosts)
@@ -281,8 +284,8 @@ func (r *Storage) GetPost(ctx context.Context, postID int64) (*model.Post, error
 	log.Debug().Msgf("%s start", op)
 
 	queryGetPost := `SELECT post_id, author_id, title, text, comments_enabled, create_date
-						FROM Posts
-						WHERE post_id = $1`
+							FROM Posts
+							WHERE post_id = $1`
 
 	var post = new(model.Post)
 	err := r.db.GetContext(ctx, post, queryGetPost, postID)
@@ -317,10 +320,10 @@ func (r *Storage) GetCommentsBranch(ctx context.Context, postID int64, path stri
 	allComments = make([]*model.Comment, 0)
 
 	queryGetCommentsToPost := `SELECT comment_id, author_id, post_id, parent_id, path, text, create_date
-								FROM Comments
-								WHERE post_id = $1
-								ORDER BY string_to_array(path::text, '.')::int[],
-								create_date DESC`
+									FROM Comments
+									WHERE post_id = $1
+									ORDER BY string_to_array(path::text, '.')::int[],
+									create_date DESC`
 
 	err = r.db.SelectContext(ctx, &allComments, queryGetCommentsToPost, postID)
 

@@ -14,4 +14,5 @@ var (
 	ErrParentCommentNotExist  = errors.New("parent comment not exist yet")
 	ErrIncorrectCommentLength = errors.New("incorrect comment length")
 	ErrCommentsNotEnabled     = errors.New("сomments on the post are not allowed")
+	ErrInvalidAfterCursor     = errors.New("invalid after cursor")
 )
