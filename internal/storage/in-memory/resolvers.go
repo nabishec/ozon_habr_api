@@ -17,7 +17,8 @@ type Storage struct {
 	comments         map[int64][]*model.Comment
 	commentPath      map[int64]string
 	repliesByPath    map[string][]*model.Comment
-	posts            map[int64]*model.Post
+	post             map[int64]*model.Post
+	posts            []*model.Post
 }
 
 func NewStorage() *Storage {
@@ -27,7 +28,8 @@ func NewStorage() *Storage {
 		comments:         make(map[int64][]*model.Comment), // root comments
 		commentPath:      make(map[int64]string),
 		repliesByPath:    make(map[string][]*model.Comment),
-		posts:            make(map[int64]*model.Post),
+		post:             make(map[int64]*model.Post),
+		posts:            make([]*model.Post, 0),
 	}
 }
 
@@ -53,7 +55,8 @@ func (r *Storage) AddPost(ctx context.Context, newPost *model.NewPost) (*model.P
 	postID := r.postsLastIndex + 1
 	r.postsLastIndex += 1
 	post.ID = postID
-	r.posts[postID] = post
+	r.post[postID] = post
+	r.posts = append(r.posts, post)
 
 	log.Debug().Msgf("%s end", op)
 	return post, nil
@@ -79,7 +82,7 @@ func (r *Storage) AddComment(ctx context.Context, postID int64, newComment *mode
 	default:
 	}
 
-	post, ok := r.posts[postID]
+	post, ok := r.post[postID]
 	if !ok {
 		return nil, errs.ErrPostNotExist
 	}
@@ -126,7 +129,7 @@ func (r *Storage) UpdateEnableCommentToPost(ctx context.Context, postID int64, a
 	default:
 	}
 
-	post, ok := r.posts[postID]
+	post, ok := r.post[postID]
 	if !ok {
 		return nil, errs.ErrPostNotExist
 	}
@@ -153,17 +156,13 @@ func (r *Storage) GetAllPosts(ctx context.Context) ([]*model.Post, error) {
 	default:
 	}
 
-	var posts []*model.Post
-	for _, v := range r.posts {
-		posts = append(posts, v)
-	}
-	if len(posts) == 0 {
+	if len(r.posts) == 0 {
 		return nil, errs.ErrPostsNotExist
 	}
 
 	log.Debug().Msgf("%s end", op)
 
-	return posts, nil
+	return r.posts, nil
 }
 
 func (r *Storage) GetPost(ctx context.Context, postID int64) (*model.Post, error) {
@@ -178,7 +177,7 @@ func (r *Storage) GetPost(ctx context.Context, postID int64) (*model.Post, error
 	default:
 	}
 
-	post, ok := r.posts[postID]
+	post, ok := r.post[postID]
 
 	if !ok {
 		return nil, errs.ErrPostNotExist
