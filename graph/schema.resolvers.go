@@ -158,6 +158,13 @@ func (r *postResolver) Comments(ctx context.Context, obj *model.Post, first *int
 	const op = "graph.Comments()"
 
 	log.Debug().Msgf("%s start", op)
+	if obj.CommentsEnabled == false {
+		obj.Comments = &model.CommentConnection{
+			Edges:    []*model.CommentEdge{},
+			PageInfo: &model.PageInfo{HasNextPage: false},
+		}
+		return obj.Comments, nil
+	}
 
 	var path string
 	if after != nil {

@@ -74,7 +74,7 @@ func RunServer(storage storage.StorageImp) {
 	srv.Use(extension.AutomaticPersistedQuery{
 		Cache: lru.New[string](100),
 	})
-	srv.Use(extension.FixedComplexityLimit(800)) // limit to +- 50 commments because there is not much space on web page
+	srv.Use(extension.FixedComplexityLimit(400)) // limit to +- 50 commments because there is not much space on web page
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)
 

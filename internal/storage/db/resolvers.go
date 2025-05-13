@@ -146,12 +146,13 @@ func (r *Storage) AddComment(ctx context.Context, postID int64, newComment *mode
 
 	comment.Path = path
 
+	if parentPath != "" {
+		parentPath = parentPath[:len(parentPath)-1]
+	}
+
 	commentsBranch, err := r.getCommentsToPostFromCashe(ctx, comment.PostID, parentPath)
 	if err == nil {
 		commentsBranch = append(commentsBranch, comment)
-		if parentPath != "" {
-			parentPath = parentPath[:len(parentPath)-1]
-		}
 		err = r.setCommentsBranchToPostInCache(ctx, commentsBranch, comment.PostID, parentPath)
 		if err != nil {
 			log.Warn().Err(err).Msg("cache returned error")
