@@ -43,6 +43,13 @@ func (r *Storage) AddPost(ctx context.Context, newPost *model.NewPost) (*model.P
 		CreateDate:      time.Now(),
 	}
 
+	select {
+	case <-ctx.Done():
+		log.Warn().Msgf("%s canceled", op)
+		return nil, ctx.Err()
+	default:
+	}
+
 	postID := r.postsLastIndex + 1
 	r.postsLastIndex += 1
 	post.ID = postID
@@ -63,6 +70,13 @@ func (r *Storage) AddComment(ctx context.Context, postID int64, newComment *mode
 		ParentID:   newComment.ParentID,
 		Text:       newComment.Text,
 		CreateDate: time.Now(),
+	}
+
+	select {
+	case <-ctx.Done():
+		log.Warn().Msgf("%s canceled", op)
+		return nil, ctx.Err()
+	default:
 	}
 
 	post, ok := r.posts[postID]
@@ -105,6 +119,13 @@ func (r *Storage) UpdateEnableCommentToPost(ctx context.Context, postID int64, a
 
 	log.Debug().Msgf("%s start", op)
 
+	select {
+	case <-ctx.Done():
+		log.Warn().Msgf("%s canceled", op)
+		return nil, ctx.Err()
+	default:
+	}
+
 	post, ok := r.posts[postID]
 	if !ok {
 		return nil, errs.ErrPostNotExist
@@ -125,6 +146,13 @@ func (r *Storage) GetAllPosts(ctx context.Context) ([]*model.Post, error) {
 
 	log.Debug().Msgf("%s start", op)
 
+	select {
+	case <-ctx.Done():
+		log.Warn().Msgf("%s canceled", op)
+		return nil, ctx.Err()
+	default:
+	}
+
 	var posts []*model.Post
 	for _, v := range r.posts {
 		posts = append(posts, v)
@@ -143,6 +171,13 @@ func (r *Storage) GetPost(ctx context.Context, postID int64) (*model.Post, error
 
 	log.Debug().Msgf("%s start", op)
 
+	select {
+	case <-ctx.Done():
+		log.Warn().Msgf("%s canceled", op)
+		return nil, ctx.Err()
+	default:
+	}
+
 	post, ok := r.posts[postID]
 
 	if !ok {
@@ -158,6 +193,13 @@ func (r *Storage) GetCommentsBranch(ctx context.Context, postID int64, path stri
 	op := "internal.storage.inmemory.GetCommentsBranch()"
 
 	log.Debug().Msgf("%s start", op)
+
+	select {
+	case <-ctx.Done():
+		log.Warn().Msgf("%s canceled", op)
+		return nil, ctx.Err()
+	default:
+	}
 
 	if path == "" {
 		if v, ok := r.comments[postID]; ok {
@@ -183,6 +225,13 @@ func (r *Storage) GetCommentPath(ctx context.Context, commentID int64) (string, 
 	op := "internal.storage.inmemory.GetCommentPath()"
 
 	log.Debug().Msgf("%s start", op)
+
+	select {
+	case <-ctx.Done():
+		log.Warn().Msgf("%s canceled", op)
+		return "", ctx.Err()
+	default:
+	}
 
 	path, ok := r.commentPath[commentID]
 
