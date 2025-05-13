@@ -15,7 +15,7 @@ type Storage struct {
 	postsLastIndex   int64
 	commentLastIndex int64
 	comments         map[int64][]*model.Comment
-	commentPath      map[int64]string
+	comment          map[int64]*model.Comment
 	repliesByPath    map[string][]*model.Comment
 	post             map[int64]*model.Post
 	posts            []*model.Post
@@ -26,7 +26,7 @@ func NewStorage() *Storage {
 		postsLastIndex:   0,
 		commentLastIndex: 0,
 		comments:         make(map[int64][]*model.Comment), // root comments
-		commentPath:      make(map[int64]string),
+		comment:          make(map[int64]*model.Comment),
 		repliesByPath:    make(map[string][]*model.Comment),
 		post:             make(map[int64]*model.Post),
 		posts:            make([]*model.Post, 0),
@@ -91,13 +91,14 @@ func (r *Storage) AddComment(ctx context.Context, postID int64, newComment *mode
 		return nil, errs.ErrCommentsNotEnabled
 	}
 
-	commentID := r.commentLastIndex + 1
-	r.commentLastIndex += 1
-	comment.ID = commentID
 	var parentPath string
 	if comment.ParentID != nil {
-		if parentCommentPath, ok := r.commentPath[*comment.ParentID]; ok {
-			parentPath = parentCommentPath
+		if parentComment, ok := r.comment[*comment.ParentID]; ok {
+			parentPath = parentComment.Path
+			if parentComment.PostID != postID {
+				return nil, errs.ErrParentCommentNotExist
+			}
+			log.Info().Msgf("parentPath: %s", parentPath)
 		} else {
 			return nil, errs.ErrParentCommentNotExist
 		}
@@ -108,10 +109,14 @@ func (r *Storage) AddComment(ctx context.Context, postID int64, newComment *mode
 		r.comments[postID] = append(r.comments[postID], comment)
 	}
 
+	commentID := r.commentLastIndex + 1
+	r.commentLastIndex += 1
+	comment.ID = commentID
+
 	path := parentPath + strconv.FormatInt(comment.ID, 10)
 	comment.Path = path
 
-	r.commentPath[commentID] = path
+	r.comment[commentID] = comment
 
 	log.Debug().Msgf("%s end", op)
 	return comment, nil
@@ -232,11 +237,12 @@ func (r *Storage) GetCommentPath(ctx context.Context, commentID int64) (string, 
 	default:
 	}
 
-	path, ok := r.commentPath[commentID]
-
+	comment, ok := r.comment[commentID]
 	if !ok {
 		return "", errs.ErrCommentsNotExist
 	}
+
+	path := comment.Path
 
 	log.Debug().Msgf("%s end", op)
 	return path, nil
