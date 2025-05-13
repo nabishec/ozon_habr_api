@@ -171,16 +171,24 @@ CMD ["./main","-s", "m"]
 `│   ├── handlers/`<br>
 `│   │   ├── comment_mutation/`                (Обработчики логики мутаций комментариев)<br>
 `│   │   │   ├──` [`interface.go`](./internal/handlers/comment_mutation/interface.go)        (Интерфейс для мутаций комментариев)<br>
-`│   │   │   └──` [`mutations.go`](./internal/handlers/comment_mutation/mutations.go)        (Реализация мутаций комментариев)<br>
+`│   │   │   ├──` [`mutations.go`](./internal/handlers/comment_mutation/mutations.go)        (Реализация мутаций комментариев)<br>
+`│   │   │   ├──` [`mutation_test.go`](./internal/handlers/comment_mutation/mutation_test.go)     (Тесты для мутаций комментариев)<br>
+`│   │   │   └──` [`comment_mutation_imp_mock_test.go`](./internal/handlers/comment_mutation/comment_mutation_imp_mock_test.go)  (Моки для тестирования мутаций комментариев)<br>
 `│   │   ├── comment_query/`                (Обработчики логики запросов комментариев)<br>
 `│   │   │   ├──` [`interface.go`](./internal/handlers/comment_query/interface.go)        (Интерфейс для запросов комментариев)<br>
-`│   │   │   └──` [`query.go`](./internal/handlers/comment_query/query.go)        (Реализация запросов комментариев)<br>
+`│   │   │   ├──` [`query.go`](./internal/handlers/comment_query/query.go)        (Реализация запросов комментариев)<br>
+`│   │   │   ├──` [`query_test.go`](./internal/handlers/comment_query/query_test.go)     (Тесты для запросов комментариев)<br>
+`│   │   │   └──` [`comment_query_imp_mock_test.go`](./internal/handlers/comment_query/comment_query_imp_mock_test.go)  (Моки для тестирования запросов комментариев)<br>
 `│   │   ├── post_mutation/`          (Обработчики логики мутаций постов)<br>
 `│   │   │   ├──` [`interface.go`](./internal/handlers/post_mutation/interface.go)        (Интерфейс для мутаций постов)<br>
-`│   │   │   └──` [`mutations.go`](./internal/handlers/post_mutation/mutations.go)        (Реализация мутаций постов)<br>
+`│   │   │   ├──` [`mutations.go`](./internal/handlers/post_mutation/mutations.go)        (Реализация мутаций постов)<br>
+`│   │   │   ├──` [`mutations_test.go`](./internal/handlers/post_mutation/mutations_test.go)     (Тесты для мутаций постов)<br>
+`│   │   │   └──` [`post_mut_imp_mock_test.go`](./internal/handlers/post_mutation/post_mut_imp_mock_test.go)  (Моки для тестирования мутаций постов)<br>
 `│   │   └── post_query/`          (Обработчики логики запросов постов)<br>
 `│   │       ├──` [`interface.go`](./internal/handlers/post_query/interface.go)        (Интерфейс для запросов постов)<br>
-`│   │       └──` [`query.go`](./internal/handlers/post_query/query.go)        (Реализация запросов постов)<br>
+`│   │       ├──` [`query.go`](./internal/handlers/post_query/query.go)        (Реализация запросов постов)<br>
+`│   │       ├──` [`query_test.go`](./internal/handlers/post_query/query_test.go)     (Тесты для запросов постов)<br>
+`│   │       └──` [`post_query_imp_mock_test.go`](./internal/handlers/post_query/post_query_imp_mock_test.go)  (Моки для тестирования запросов постов)<br>
 `│   ├── pkg/`<br>
 `│   │   ├── cursor/`<br>
 `│   │   |   └──` [`cursor.go`](./internal/pkg/cursor/cursor.go)        (Функции для работы с курсорами в пагинации)<br>
@@ -189,10 +197,10 @@ CMD ["./main","-s", "m"]
 `│   ├── model/`<br>
 `│   │   └──` [`model.go`](./internal/model/model.go)                (Внутренние модели данных)<br>
 `│   └── storage/`<br>
-`│       ├── db/` (Реализация хранилища данных в памяти) <br>
+`│       ├── db/` (Реализация хранилища данных в PostgreSQL) <br>
 `│       │   └──` [`resolvers.go`](./internal/storage/db/resolvers.go)        (Реализация методов для работы с базой данных PostgreSQL)<br>
 `│       ├── in-memory/` (Реализация хранилища данных в памяти) <br>
-`│       │   └──` [`resolvers.go`](./internal/storage/in-memory/resolvers.go)        (Реализация методов для работы с даннми в памяти)<br>
+`│       │   └──` [`resolvers.go`](./internal/storage/in-memory/resolvers.go)        (Реализация методов для работы с данными в памяти)<br>
 `│       └──` [`interface.go`](./internal/storage/interface.go)            (Интерфейс для хранилища данных (PostgreSQL, in-memory))<br>
 `├── migrations/`<br>
 `│   └──` [`001_create_tables.up.sql`](./migrations/001_create_tables.up.sql)    (SQL скрипт для миграции базы данных (создание таблиц))<br>
@@ -205,6 +213,8 @@ CMD ["./main","-s", "m"]
 `├──` [`go.mod`](./go.mod)                          (Файл зависимостей Go)<br>
 `├──` [`go.sum`](./go.sum)                          (Файл с контрольными суммами зависимостей Go)<br>
 `├──` [`gqlgen.yml`](./gqlgen.yml)                      (Конфигурационный файл для gqlgen)<br>
+`├──` [`cover.out`](./cover.out)                      (Файл с отчетом о покрытии кода тестами)<br>
+`├──` [`image.png`](./image.png)                      (Изображение со статистикой покрытия кода тестами)<br>
 `├──` [`LICENSE`](./LICENSE)                         (Лицензия проекта)<br>
 `└──` [`README.md`](./README.md)                       (Файл с описанием проекта)<br>
 
