@@ -41,8 +41,13 @@ func (r *commentResolver) Replies(ctx context.Context, obj *model.Comment, first
 				err = errors.New("internal server error")
 			}
 
-			return nil, err
+			comments := &model.CommentConnection{
+				Edges:    []*model.CommentEdge{},
+				PageInfo: &model.PageInfo{HasNextPage: false},
+			}
+			return comments, nil
 		}
+
 	}
 
 	internalCommentsBranch, err := r.CommentQuery.GetCommentsBranchToPost(ctx, obj.PostID, path)
@@ -53,7 +58,11 @@ func (r *commentResolver) Replies(ctx context.Context, obj *model.Comment, first
 			}
 			err = errors.New("internal server error")
 		}
-		return nil, err
+		comments := &model.CommentConnection{
+			Edges:    []*model.CommentEdge{},
+			PageInfo: &model.PageInfo{HasNextPage: false},
+		}
+		return comments, nil
 
 	}
 
@@ -184,6 +193,13 @@ func (r *postResolver) Comments(ctx context.Context, obj *model.Post, first *int
 		if err != errs.ErrCommentsNotExist && err != errs.ErrPathNotExist {
 			err = errors.New("internal server error")
 		}
+		if err == errs.ErrCommentsNotExist {
+			obj.Comments = &model.CommentConnection{
+				Edges:    []*model.CommentEdge{},
+				PageInfo: &model.PageInfo{HasNextPage: false},
+			}
+			return obj.Comments, nil
+		}
 		return nil, err
 
 	}
@@ -292,7 +308,8 @@ func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
 		if err != errs.ErrPostsNotExist {
 			err = errors.New("internal server error")
 		}
-		return nil, err
+		posts := make([]*model.Post, 0)
+		return posts, nil
 	}
 	posts := make([]*model.Post, len(internalPosts))
 	for i, v := range internalPosts {
